@@ -104,7 +104,7 @@ if (window.hljs && document.readyState && document.readyState === "complete") {
 <pre class="r"><code>-out &lt;path/to/outfile&gt;</code></pre>
 <p>there are several output files and a suffix will be added to each file.</p>
 <p><br></p>
-<p>You can also define the region of the genome you would like to analyse. On the first pass we will limit our analysis of the genome to the first 100,000 bp of chromosome 10 using:</p>
+<p>You can also define the region of the genome you would like to analyse. On the first pass we will limit our analysis of the genome to the first 500,000 bp of chromosome 10 using:</p>
 <pre class="r"><code>-r 10:1-100000</code></pre>
 <p>I have a bam.list file that has the following accessions listed:</p>
 <pre class="r"><code>/home/sbyfield/HapMap2Teo/TIL01_merged.bam
@@ -123,7 +123,123 @@ if (window.hljs && document.readyState && document.readyState === "complete") {
 /home/sbyfield/HapMap2Teo/TIL16_merged.bam
 /home/sbyfield/HapMap2Teo/TIL17_merged.bam</code></pre>
 <p>So I can run the following command to get the initial estimation of site allele frequency likelihood (SAF):</p>
-<pre class="r"><code>angsd -bam /home/sbyfield/HapMap2Teo/teo.bam.file.list.txt -doSaf 1 -out smallFolded_10_100000 -anc /home/sbyfield/HapMap2Teo/Zea_mays.AGPv3.22.dna.genome.fa -GL 2 -fold 1 -P 12 -r 10:1-100000 -minMapQ 1 -minQ 20</code></pre>
+<pre class="r"><code>angsd -bam /home/sbyfield/HapMap2Teo/teo.bam.file.list.txt -doSaf 1 -out smallFolded_10_100000 -anc /home/sbyfield/HapMap2Teo/Zea_mays.AGPv3.22.dna.genome.fa -GL 2 -fold 1 -P 12 -r 10:1-500000 -minMapQ 1 -minQ 20</code></pre>
+<p>I have added in some quiltiy control flags.</p>
+<p>Also extedned the region from 1:100,000 bp to 1:500,000 bp resulted in the follwoing error:</p>
+<pre class="r"><code>        -&gt; Reading fasta: /home/sbyfield/HapMap2Teo/Zea_mays.AGPv3.22.dna.genome.fa
+        -&gt; Parsing 15 number of samples
+        -&gt; Printing at chr: 10 pos:5698 chunknumber 100
+        -&gt; Printing at chr: 10 pos:7154 chunknumber 200
+        -&gt; Printing at chr: 10 pos:26725 chunknumber 300
+        -&gt; Printing at chr: 10 pos:29944 chunknumber 400
+        -&gt; Printing at chr: 10 pos:41538 chunknumber 500
+        -&gt; Printing at chr: 10 pos:44283 chunknumber 600
+        -&gt; Printing at chr: 10 pos:46373 chunknumber 700
+        -&gt; Printing at chr: 10 pos:51852 chunknumber 800
+        -&gt; Printing at chr: 10 pos:51952 chunknumber 900
+PROBS at: 10    52032
+        -&gt; Printing at chr: 10 pos:70089 chunknumber 1000
+        -&gt; Printing at chr: 10 pos:70974 chunknumber 1100
+        -&gt; Printing at chr: 10 pos:123765 chunknumber 1200
+PROBS at: 10    143508
+        -&gt; Printing at chr: 10 pos:143560 chunknumber 1300
+        -&gt; Printing at chr: 10 pos:144692 chunknumber 1400
+PROBS at: 10    146774
+        -&gt; Printing at chr: 10 pos:147193 chunknumber 1500
+        -&gt; Printing at chr: 10 pos:176348 chunknumber 1600
+        -&gt; Printing at chr: 10 pos:176962 chunknumber 1700
+        -&gt; Printing at chr: 10 pos:182529 chunknumber 1800
+        -&gt; Printing at chr: 10 pos:207307 chunknumber 1900
+        -&gt; Printing at chr: 10 pos:266486 chunknumber 2000
+        -&gt; Printing at chr: 10 pos:292877 chunknumber 2100
+        -&gt; Printing at chr: 10 pos:317113 chunknumber 2200
+        -&gt; Printing at chr: 10 pos:372899 chunknumber 2300
+        -&gt; Printing at chr: 10 pos:443060 chunknumber 2400
+        -&gt; Printing at chr: 10 pos:475084 chunknumber 2500
+
+        -&gt; Done reading data waiting for calculations to finish
+        -&gt; Done waiting for threads
+        -&gt; Output filenames:
+                -&gt;&quot;smallFolded_10_100000.arg&quot;
+                -&gt;&quot;smallFolded_10_100000.saf&quot;
+                -&gt;&quot;smallFolded_10_100000.saf.pos.gz&quot;
+        -&gt; Tue Oct 28 15:07:25 2014
+        -&gt; Arguments and parameters for all analysis are located in .arg file
+        [ALL done] cpu-time used =  43.92 sec
+        [ALL done] walltime used =  25.00 sec
+
+real    0m0.000s
+user    0m0.000s
+sys     0m0.000s</code></pre>
+<p>I examined extending the region to 1:1,000,000 bp with:</p>
+<pre class="r"><code>angsd -bam /home/sbyfield/HapMap2Teo/teo.bam.file.list.txt -doSaf 1 -out smallFolded_10_100000 -anc /home/sbyfield/HapMap2Teo/Zea_mays.AGPv3.22.dna.genome.fa -GL 2 -fold 1 -P 12 -r 10:1-1000000 -minMapQ 1 -minQ 20</code></pre>
+<p>and got this error in the stderr log file:</p>
+<pre class="r"><code>        -&gt; Reading fasta: /home/sbyfield/HapMap2Teo/Zea_mays.AGPv3.22.dna.genome.fa
+        -&gt; Parsing 15 number of samples
+        -&gt; Printing at chr: 10 pos:5698 chunknumber 100
+        -&gt; Printing at chr: 10 pos:7154 chunknumber 200
+        -&gt; Printing at chr: 10 pos:26725 chunknumber 300
+        -&gt; Printing at chr: 10 pos:29944 chunknumber 400
+        -&gt; Printing at chr: 10 pos:41538 chunknumber 500
+        -&gt; Printing at chr: 10 pos:44283 chunknumber 600
+        -&gt; Printing at chr: 10 pos:46373 chunknumber 700
+        -&gt; Printing at chr: 10 pos:51852 chunknumber 800
+        -&gt; Printing at chr: 10 pos:51952 chunknumber 900
+PROBS at: 10    52032
+        -&gt; Printing at chr: 10 pos:70089 chunknumber 1000
+        -&gt; Printing at chr: 10 pos:70974 chunknumber 1100
+        -&gt; Printing at chr: 10 pos:123765 chunknumber 1200
+PROBS at: 10    143508
+        -&gt; Printing at chr: 10 pos:143560 chunknumber 1300
+        -&gt; Printing at chr: 10 pos:144692 chunknumber 1400
+PROBS at: 10    146774
+        -&gt; Printing at chr: 10 pos:147193 chunknumber 1500
+        -&gt; Printing at chr: 10 pos:176348 chunknumber 1600
+        -&gt; Printing at chr: 10 pos:176962 chunknumber 1700
+        -&gt; Printing at chr: 10 pos:182529 chunknumber 1800
+        -&gt; Printing at chr: 10 pos:207307 chunknumber 1900
+        -&gt; Printing at chr: 10 pos:266486 chunknumber 2000
+        -&gt; Printing at chr: 10 pos:292877 chunknumber 2100
+        -&gt; Printing at chr: 10 pos:317113 chunknumber 2200
+        -&gt; Printing at chr: 10 pos:372899 chunknumber 2300
+        -&gt; Printing at chr: 10 pos:443060 chunknumber 2400
+        -&gt; Printing at chr: 10 pos:475084 chunknumber 2500
+        -&gt; Printing at chr: 10 pos:537668 chunknumber 2600
+        -&gt; Printing at chr: 10 pos:549090 chunknumber 2700
+        -&gt; Printing at chr: 10 pos:574173 chunknumber 2800
+        -&gt; Printing at chr: 10 pos:589414 chunknumber 2900
+        -&gt; Printing at chr: 10 pos:615307 chunknumber 3000
+        -&gt; Printing at chr: 10 pos:633719 chunknumber 3100
+        -&gt; Printing at chr: 10 pos:651276 chunknumber 3200
+        -&gt; Printing at chr: 10 pos:667980 chunknumber 3300
+        -&gt; Printing at chr: 10 pos:687278 chunknumber 3400
+        -&gt; Printing at chr: 10 pos:703154 chunknumber 3500
+        -&gt; Printing at chr: 10 pos:730360 chunknumber 3600
+        -&gt; Printing at chr: 10 pos:750631 chunknumber 3700
+        -&gt; Printing at chr: 10 pos:770970 chunknumber 3800
+        -&gt; Printing at chr: 10 pos:789476 chunknumber 3900
+        -&gt; Printing at chr: 10 pos:808868 chunknumber 4000
+        -&gt; Printing at chr: 10 pos:829136 chunknumber 4100
+        -&gt; Printing at chr: 10 pos:861912 chunknumber 4200
+        -&gt; Printing at chr: 10 pos:888113 chunknumber 4300
+        -&gt; Printing at chr: 10 pos:911758 chunknumber 4400
+        -&gt; Printing at chr: 10 pos:935262 chunknumber 4500
+        -&gt; Printing at chr: 10 pos:958633 chunknumber 4600
+        -&gt; Printing at chr: 10 pos:974523 chunknumber 4700
+
+        -&gt; Done reading data waiting for calculations to finish
+        -&gt; Done waiting for threads
+        -&gt; Output filenames:
+                -&gt;&quot;smallFolded_10_100000.arg&quot;
+                -&gt;&quot;smallFolded_10_100000.saf&quot;
+                -&gt;&quot;smallFolded_10_100000.saf.pos.gz&quot;
+        -&gt; Tue Oct 28 15:16:32 2014
+        -&gt; Arguments and parameters for all analysis are located in .arg file
+        [ALL done] cpu-time used =  82.42 sec
+        [ALL done] walltime used =  38.00 sec
+
+real    0m0.000s
+user    0m0.000s</code></pre>
 </div>
 
 
