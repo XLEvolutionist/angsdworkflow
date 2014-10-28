@@ -2,6 +2,9 @@
 title: "Estimating the Site Frequency Spectrum, Thetas and Tajima's D using ANGSD"
 output: html_document
 ---
+<br>
+<br>
+
 
 This is a document detailing how to process mapped NGS reads (sorted and indexed .bam files), and derive the SFS, site-wise estimates of Theta and Tajima's D using [ANGSD](http://popgen.dk/wiki/index.php/ANGSD). This is based on the wiki entry [here](http://popgen.dk/angsd/index.php/Tajima). At the moment this is estiamted based on several teosinte samples from the HapMap2 project. These are stored on Farm in 
 
@@ -15,7 +18,9 @@ In order to process the data the order of opporations should be roughly:
 2.  Estimate Thetas
 3.  Measure Statistics of deviation from neutrality.
 
-Below is an example of work flow given in the [wiki](http://popgen.dk/angsd/index.php/Tajima), enabling the eventual estimation of Tajima's D.
+Below is an example of work flow given in the [wiki](http://popgen.dk/angsd/index.php/Tajima), enabling the eventual estimation of Tajima's D.<br>
+
+<br>
 
 ```{r,wrapper=TRUE, eval=FALSE}
     ./angsd -bam bam.filelist -doSaf 1 -anc chimpHg19.fa -GL 2 -P 24 -out out 
@@ -26,4 +31,99 @@ Below is an example of work flow given in the [wiki](http://popgen.dk/angsd/inde
     ./misc/thetaStat do_stat out.thetas.gz -nChr 20
     #Do a sliding window analysis based on the output from the make_bed command.
     ./misc/thetaStat do_stat out.thetas.gz -nChr 20 -win 50000 -step 10000  -outnames theta.thetasWindow.gz
+```
+
+<br>
+
+###Step1: Estimating the SFS in Teosinte (*Zea mays ssp. parviglumis*)
+
+First estimate the site allele frequency likelihood. This requires several things listed below:
+
+**1**.  A file with listed, one per line, all the .bam files you want to analyse. You can grab the files you need by cd'ing to the dir they are in and executing this code on the command line. 
+<br>
+
+```{r,wrapper=TRUE, eval=FALSE}
+ls $PWD/*.bam > bam.list
+```
+<br>
+
+**2**.  Choose which method you want to use with: 
+
+```{r,wrapper=TRUE, eval=FALSE}
+-doSaf [int 1-4]
+```
+
+There are four options listed in detail [here](http://popgen.dk/angsd/index.php/SFS_Estimation).
+
+<br>
+
+**3**. Define your ancestral allele using the flag:
+```{r,wrapper=TRUE, eval=FALSE}
+-anc <path/to/referencegenome>
+```
+
+In my case we do not know the ancestral allele state, which means instead of derived allele SFS we need a minor allele SFS (a folded SFS). We can still provide an ancestral estimate using the reference genome (B73), but once folding is complete in becomes a minor allele SFS. We need to specify that we want a folded SFS wiht:
+```{r,wrapper=TRUE, eval=FALSE}
+-fold 1
+```
+<br>
+
+**4**.  Define the method for estimating Genotype Likelihoods:
+```{r,wrapper=TRUE, eval=FALSE}
+-GL [int 1-4]
+```
+
+details of the different methods are provided [here](http://popgen.dk/angsd/index.php/Genotype_likelihoods).
+
+<br>
+
+
+**5**. Define the number of processors to use with:
+```{r,wrapper=TRUE, eval=FALSE}
+-P [int]
+```
+ 
+ <br>
+ 
+**6**. Define the outfile name using:
+```{r,wrapper=TRUE, eval=FALSE}
+-out <path/to/outfile>
+```
+there are several output files and a suffix will be added to each file.
+
+<br>
+
+You can also define the region of the genome you would like to analyse. On the first pass we will limit our analysis of the genome to the first 100,000 bp of chromosome 10 using:
+
+
+```{r,wrapper=TRUE, eval=FALSE}
+-r 10:1-100000
+```
+
+I have a bam.list file that has the following accessions listed:
+
+```{r,wrapper=TRUE, eval=FALSE}
+/home/sbyfield/HapMap2Teo/TIL01_merged.bam
+/home/sbyfield/HapMap2Teo/TIL02_merged.bam
+/home/sbyfield/HapMap2Teo/TIL03_merged.bam
+/home/sbyfield/HapMap2Teo/TIL04-TIP454_merged.bam
+/home/sbyfield/HapMap2Teo/TIL05_merged.bam
+/home/sbyfield/HapMap2Teo/TIL06-TIP496_merged.bam
+/home/sbyfield/HapMap2Teo/TIL07_merged.bam
+/home/sbyfield/HapMap2Teo/TIL09_merged.bam
+/home/sbyfield/HapMap2Teo/TIL10_merged.bam
+/home/sbyfield/HapMap2Teo/TIL11_merged.bam
+/home/sbyfield/HapMap2Teo/TIL12_merged.bam
+/home/sbyfield/HapMap2Teo/TIL14-TIP498_merged.bam
+/home/sbyfield/HapMap2Teo/TIL15_merged.bam
+/home/sbyfield/HapMap2Teo/TIL16_merged.bam
+/home/sbyfield/HapMap2Teo/TIL17_merged.bam
+```
+
+So I can run the following command to get the initial estimation of site allele frequency likelihood (SAF):
+
+```{r,wrapper=TRUE, eval=FALSE}
+
+angsd -bam /home/sbyfield/HapMap2Teo/teo.bam.file.list.txt -doSaf 1 -out smallFolded_10_100000 -anc /home/sbyfield/HapMap2Teo/Zea_mays.AGPv3.22.dna.genome.fa -GL 2 -fold 1 -P 12 -r 10:1-100000 -minMapQ 1 -minQ 20
+
 ```
