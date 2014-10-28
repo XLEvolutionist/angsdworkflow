@@ -1,0 +1,29 @@
+---
+title: "Estimating the Site Frequency Spectrum, Thetas and Tajima's D using ANGSD"
+output: html_document
+---
+
+This is a document detailing how to process mapped NGS reads (sorted and indexed .bam files), and derive the SFS, site-wise estimates of Theta and Tajima's D using [ANGSD](http://popgen.dk/wiki/index.php/ANGSD). This is based on the wiki entry [here](http://popgen.dk/angsd/index.php/Tajima). At the moment this is estiamted based on several teosinte samples from the HapMap2 project. These are stored on Farm in 
+
+* /group/jrigrp3/bottleneckProject/mergedBams
+
+The examples TIL\*.bam are all teosinte, but TIL8 and TIL25 are *Z. mays mexicana* and will be removed from future analysis. The remiaing TIL\*.bam accessions are all *Zea mays parviglumis* and can be analysed together. 
+
+In order to process the data the order of opporations should be roughly:
+
+1.  Estiamte the SFS.
+2.  Estimate Thetas
+3.  Measure Statistics of deviation from neutrality.
+
+Below is an example of work flow given in the [wiki](http://popgen.dk/angsd/index.php/Tajima), enabling the eventual estimation of Tajima's D.
+
+```{r,wrapper=TRUE, eval=FALSE}
+    ./angsd -bam bam.filelist -doSaf 1 -anc chimpHg19.fa -GL 2 -P 24 -out out 
+    ./misc/realSFS out.saf 20 -P 24 > out.sfs
+    ./angsd -bam bam.filelist -out out -doThetas 1 -doSaf 1 -pest out.sfs -anc chimpHg19.fa -GL 2
+    ./misc/thetaStat make_bed out.thetas.gz
+    #Estimate for every Chromosome/scaffold
+    ./misc/thetaStat do_stat out.thetas.gz -nChr 20
+    #Do a sliding window analysis based on the output from the make_bed command.
+    ./misc/thetaStat do_stat out.thetas.gz -nChr 20 -win 50000 -step 10000  -outnames theta.thetasWindow.gz
+```
