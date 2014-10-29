@@ -124,12 +124,11 @@ So I can run the following command to get the initial estimation of site allele 
 
 ```{r,wrapper=TRUE, eval=FALSE}
 
-angsd -bam /home/sbyfield/HapMap2Teo/teo.bam.file.list.txt -doSaf 1 -out smallFolded_10_100000 -anc /home/sbyfield/HapMap2Teo/Zea_mays.AGPv3.22.dna.genome.fa -GL 2 -fold 1 -P 12 -r 10:1-500000 -minMapQ 1 -minQ 20
+angsd -bam /home/sbyfield/HapMap2Teo/teo.bam.file.list.txt -doSaf 1 -out teoFolded_chr10 -anc /home/sbyfield/HapMap2Teo/Zea_mays.AGPv3.22.dna.genome.fa -GL 2 -fold 1 -P 12 -r 10:1-10000000 
 
 ```
- I have added in some quiltiy control flags.
  
-Also extedned the region from 1:100,000 bp to 1:500,000 bp resulted in the follwoing error:
+I extedned the region from 1:100,000 bp to 1:500,000 bp resulted in the follwoing error:
  
 ```{r,eval=FALSE}
         -> Reading fasta: /home/sbyfield/HapMap2Teo/Zea_mays.AGPv3.22.dna.genome.fa
@@ -183,7 +182,7 @@ I examined extending the region to 1:1,000,000 bp with:
 
 ```{r,wrapper=TRUE, eval=FALSE}
 
-angsd -bam /home/sbyfield/HapMap2Teo/teo.bam.file.list.txt -doSaf 1 -out smallFolded_10_100000 -anc /home/sbyfield/HapMap2Teo/Zea_mays.AGPv3.22.dna.genome.fa -GL 2 -fold 1 -P 12 -r 10:1-1000000 -minMapQ 1 -minQ 20
+angsd -bam /home/sbyfield/HapMap2Teo/teo.bam.file.list.txt -doSaf 1 -out teoFolded_chr10 -anc /home/sbyfield/HapMap2Teo/Zea_mays.AGPv3.22.dna.genome.fa -GL 2 -fold 1 -P 12 -r 10:1-1000000 -minMapQ 1 -minQ 20
 
 ```
 
@@ -257,3 +256,81 @@ PROBS at: 10    146774
 real    0m0.000s
 user    0m0.000s
 ```
+I extedned the region to 10,000,000 bp. Next it is probably wise to go ahead an see if I can move through the rest of the analyses and actually producce a folded SFS.
+
+The next step is to convert the .saf file to a SFS using:
+```
+realSFS
+```
+
+There there is some confusion in the wiki for ANGSD about exactly how to do this, sometimes it says you need to declare $2n+1$ chromosomes, sometimes $2n$ chromosomes and sometimes $n$, where $n$ is the number of samples. I have found that using $n$ gets ANGSD to run. For example, if I have 15 samples (as I do in this example) I will declare 15 chromosomes as an argument to **realSFS**:
+
+```
+realSFS teoFolded_chr10.saf 15 -maxIter 100 -P 12 > teoFolded_chr10.sfs
+```
+
+Here is the resulting SFS for the first 10,000,000 bp of chromosome 10 for 15 teosinte lines:
+
+```{r}
+sfs<-c(-0.192947, -2.444628, -3.249441, -4.179364, -4.586453, -5.137299 ,-5.489250, -5.845022, -6.020604, -6.241799, -6.441396, -6.546019, -6.785617, -6.850590, -6.869085 ,-7.022943)
+barplot(exp(sfs[-1]),col="darkgrey", names.arg=1:(length(sfs)-1), ylab="probability",xlab="minor allele freqquency", main = "Chr10:1:10,000,000")
+
+```
+
+This worked well, so I attempted the whole thing again for the entire Chr10 using:
+```{wrapper=TRUE}
+>angsd -bam /home/sbyfield/HapMap2Teo/teo.bam.file.list.txt -doSaf 1 -out teoFolded_chr10 -anc /home/sbyfield/HapMap2Teo/Zea_mays.AGPv3.22.dna.genome.fa -GL 2 -fold 1 -r 10 -P 12 -minMapQ 1 -minQ 20
+>realSFS teoFolded_chr10.saf 15 -maxIter 100 -P 12 > teoFolded_chr10.sfs
+```
+```{r}
+sfs<-c(-0.206044, -2.398034, -3.210098, -4.072419, -4.525486, -5.026914, -5.395742, -5.723438, -5.943467, -6.157773, -6.327133, -6.439034, -6.542996, -6.667280, -6.892473 -7.044611)
+barplot(exp(sfs[-1]),col="darkgrey", names.arg=1:(length(sfs)-1), ylab="probability",xlab="minor allele freqquency", main = "Chr10")
+
+```
+
+This worked well also so I extended it to the whole genome using:
+```
+>angsd -bam /home/sbyfield/HapMap2Teo/teo.bam.file.list.txt -doSaf 1 -out teoFolded -anc /home/sbyfield/HapMap2Teo/Zea_mays.AGPv3.22.dna.genome.fa -GL 2 -fold 1 -P 18 -minMapQ 1 -minQ 20
+>realSFS teoFolded.saf 15 -maxIter 100 -P 18 > teoFolded.sfs
+```
+
+###Step2: Calculate the thetas for each site
+
+The next step is too calculate site wise estimates of theta for the region of interest. This can be acheived with a command like this:
+```
+>angsd -bam bam.filelist -out out -doThetas 1 -doSaf 1 -pest out.sfs -anc chimpHg19.fa -GL 2
+```    
+
+So for jsut the Chr10 data my command looks like:
+```
+>angsd -bam /home/sbyfield/HapMap2Teo/teo.bam.file.list.txt -out teoThetas_ch10 -doThetas 1 -doSaf 1 -fold 1 -pest teoFolded_chr10.sfs -anc Zea_mays.AGPv3.22.dna.genome.fa -GL 2 -P 12 -r 10:1-10000000 -minMapQ 1 -minQ 20
+```
+
+So to take a look at the data you can do:
+
+```
+gunzip -c teoThetas_ch10.thetas.gz | head
+```
+
+The ouput looks like this..
+
+```
+#Chromo  Pos	Watterson	Pairwise	thetaSingleton	thetaH	thetaL
+10	19	-3.057582	-3.592928	-Inf	-Inf	-Inf
+10	20	-3.057582	-3.592928	-Inf	-Inf	-Inf
+10	21	-3.057582	-3.592928	-Inf	-Inf	-Inf
+10	22	-3.057582	-3.592928	-Inf	-Inf	-Inf
+10	23	-3.057582	-3.592928	-Inf	-Inf	-Inf
+10	24	-3.057582	-3.592928	-Inf	-Inf	-Inf
+10	25	-3.057582	-3.592928	-Inf	-Inf	-Inf
+10	26	-3.057582	-3.592928	-Inf	-Inf	-Inf
+10	27	-3.057582	-3.592928	-Inf	-Inf	-Inf
+```
+
+Note that the last three columns cannot be calculated with a folded spectrum. It's not important for calculating Tajima's D in this case. The next step is to create a BED file of the genome region.
+
+```
+#create a binary version of thete.thetas.gz 
+misc/thetaStat make_bed teoThetas_ch10.thetas.gz
+```
+
