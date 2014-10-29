@@ -6,7 +6,7 @@ output: html_document
 <br>
 
 
-This is a document detailing how to process mapped NGS reads (sorted and indexed .bam files), and derive the SFS, site-wise estimates of Theta and Tajima's D using [ANGSD](http://popgen.dk/wiki/index.php/ANGSD). This is based on the wiki entry [here](http://popgen.dk/angsd/index.php/Tajima). At the moment this is estiamted based on several teosinte samples from the HapMap2 project. These are stored on Farm in 
+This is a document detailing how to process mapped NGS reads (sorted and indexed .bam files), and derive the SFS, site-wise estimates of Theta and Tajima's D using [ANGSD](http://popgen.dk/wiki/index.php/ANGSD). This is based on the wiki entry [here](http://popgen.dk/angsd/index.php/Tajima). At the moment this is estiamted based on several teosinte samples from the HapMap2 project. These are stored on Farm in:
 
 * /group/jrigrp3/bottleneckProject/mergedBams
 
@@ -332,5 +332,96 @@ Note that the last three columns cannot be calculated with a folded spectrum. It
 ```
 #create a binary version of thete.thetas.gz 
 misc/thetaStat make_bed teoThetas_ch10.thetas.gz
+#calculate Tajimas D
+./misc/thetaStat do_stat out.thetas.gz -nChr 20 -win 5000 -step 1000  -outnames teothetasWindow_chr10.gz
 ```
 
+The outout of the call looks like this:
+
+```
+#(indexStart,indexStop)(firstPos_withData,lastPos_withData)(WinStart,WinStop)  Chr	WinCenter	tW	tP	tF	tH	tL	Tajima	fuf	fud	fayh	zeng	nSites
+(981,5553)(1000,6000)(1000,6000)	10	3500	229.075532	128.679660	0.000000	0.000000	0.000000	-1.951619	1.022695	2.198914	0.627387	-1.271722	4572
+(1744,6553)(2000,7000)(2000,7000)	10	4500	252.158774	146.216524	0.000000	0.000000	0.000000	-1.871340	1.056264	2.200253	0.647711	-1.272027	4809
+(2737,7373)(3000,9633)(3000,8000)	10	5500	245.769776	142.231370	0.000000	0.000000	0.000000	-1.876311	1.054038	2.199907	0.646415	-1.271948	4636
+(3737,7373)(4000,9633)(4000,9000)	10	6500	198.005228	116.321264	0.000000	0.000000	0.000000	-1.836315	1.068549	2.196625	0.655984	-1.271199	3636
+(4553,7740)(5000,10000)(5000,10000)	10	7500	160.708626	92.637354	0.000000	0.000000	0.000000	-1.884167	1.046818	2.192724	0.643425	-1.270307	3187
+(5553,8515)(6000,12805)(6000,11000)	10	8500	135.715894	77.997890	0.000000	0.000000	0.000000	-1.890558	1.042092	2.188930	0.641280	-1.269437	2962
+(6553,8515)(7000,12805)(7000,12000)	10	9500	84.359327	46.535357	0.000000	0.000000	0.000000	-1.988064	0.994260	2.174266	0.614661	-1.266046	1962
+(7373,8695)(9633,13000)(8000,13000)	10	10500	62.033024	37.406809	0.000000	0.000000	0.000000	-1.755972	1.080761	2.160589	0.671020	-1.262847	1322
+```
+Here is description of the file format form the [ANGSD](http://popgen.dk/angsd/index.php/Tajima) wiki:
+
+```
+"The .pestPG file is a 14 column file (tab seperated). The first column contains information about the region. The second and third column is the reference name and the center of the window.
+We then have 5 different estimators of theta, these are: Watterson, pairwise, FuLi, fayH, L. And we have 5 different neutrality test statistics: Tajima's D, Fu&Li F's, Fu&Li's D, Fay's H, Zeng's E. The final column is the effetive number of sites with data in the window."
+```
+
+Make an attempt to draw estimates of Tajima's D across the whole of Chr10:
+
+```{r}
+#load in the data
+TJD<-read.table("/Users/simonrenny-byfield/test_angst/teothetasWindow_chr10.gz.pestPG", header = T, sep = "\t")
+plot(TJD[,3],TJD[,9], pch = 16, cex=.5)
+```
+
+Now examine Tajima's D with proportion of bases covered per window.
+
+```{r}
+library(ggplot2)
+#load in the data
+TJD<-read.table("/Users/simonrenny-byfield/test_angst/teothetasWindow_chr10.gz.pestPG", header = T, sep = "\t")
+plot(TJD[,14]/5000,TJD[,9], pch = 16, cex=.5)
+#make a data table to plot with ggplot
+TajimaD<-data.frame("pos"=TJD[,3],"prop"=TJD[,3],"TD"=TJD[,9])
+plt <- ggplot(TajimaD, aes(x= prop,y=TD))+ 
+  geom_point()+
+    stat_summary(geom="ribbon", fun.ymin="mean", fun.ymax="mean")
+plt
+```
+
+I spoke with Jeff and he indicated that the parameters are probably too liberal, resultingin bad mapping and an over-estimation of rare alleles (hence negative TD) . For example, he tells me that simulations indicated that BWA-MEM maps better alignments with ninimum aligment score of 40. So, I will re-run the analysis with modified parameters detailed below:
+
+```
+#the minimum number of indivduals with at least 1 read.
+-minInd [int]
+#The m
+-minMapQ 20 
+
+-minQ 40
+```
+
+I will re-run analyses with the first 10,000,000 bp of chromosome 10 using the following command:
+
+```
+>angsd -bam /home/sbyfield/HapMap2Teo/teo.bam.file.list.txt -doSaf 1 -out teoFolded_chr10_10000000 -anc /home/sbyfield/HapMap2Teo/Zea_mays.AGPv3.22.dna.genome.fa -GL 2 -fold 1 -P 12 -r 10:1-1000000 -minMapQ 20 -minQ 40
+
+>realSFS teoFolded_chr10_10000000.saf 15 -maxIter 100 -P 12 > teoFolded_chr10_10000000.sfs
+````
+
+using teh following slurm batch file:
+
+```
+#!/bin/bash
+#OUTDIR=/home/sbyfield/HapMap2Teo
+#SBATCH -D /home/sbyfield/HapMap2Teo/
+#SBATCH -o /home/sbyfield/HapMap2Teo/slurm-log/stdout_log-%j.txt
+#SBATCH -e /home/sbyfield/HapMap2Teo/slurm-log/stderr_log-%j.txt
+#SBATCH -J teo
+#SBATCH --cpus-per-task=18
+set -e
+set -u
+
+echo "Starting job.."
+echo ""
+
+#for the sfs defining, in this case, a false ancestral allele (i.e. the B73 genome)
+echo "angsd -bam /home/sbyfield/HapMap2Teo/teo.bam.file.list.txt -doSaf 1 -out teoFolded_ch10_10000000 -anc /home/sbyfield/HapMap2Teo/Zea_mays.AGPv3.22.dna.genome.fa -GL 2 -fold 1 -P 18 -minMapQ 20 -minQ 40"
+angsd -bam /home/sbyfield/HapMap2Teo/teo.bam.file.list.txt -doSaf 1 -out teoFolded_ch10_10000000 -anc /home/sbyfield/HapMap2Teo/Zea_mays.AGPv3.22.dna.genome.fa -GL 2 -fold 1 -P 18 -minMapQ 20 -minQ 40
+#make it into a folded SFS, or minor allele spectrum
+echo "realSFS teoFolded_ch10_10000000.saf 15 -maxIter 100 -P 18 > teoFolded_ch10_10000000.sfs"
+realSFS teoFolded_ch10_10000000.saf 15 -maxIter 100 -P 18 > teoFolded_ch10_10000000.sfs
+echo ""
+time
+echo ""
+echo "done"
+```
