@@ -393,7 +393,7 @@ I spoke with Jeff and he indicated that the parameters are probably too liberal,
 I will re-run analyses with the first 10,000,000 bp of chromosome 10 using the following command:
 
 ```
->angsd -bam /home/sbyfield/HapMap2Teo/teo.bam.file.list.txt -doSaf 1 -out teoFolded_chr10_10000000 -anc /home/sbyfield/HapMap2Teo/Zea_mays.AGPv3.22.dna.genome.fa -GL 2 -fold 1 -P 12 -r 10:1-1000000 -minMapQ 20 -minQ 40
+>angsd -bam /home/sbyfield/HapMap2Teo/teo.bam.file.list.txt -doSaf 1 -out teoFolded_chr10_10000000 -anc /home/sbyfield/HapMap2Teo/Zea_mays.AGPv3.22.dna.genome.fa -GL 2 -fold 1 -P 12 -r 10:1-1000000 -minMapQ 20 -minQ 40 
 
 >realSFS teoFolded_chr10_10000000.saf 15 -maxIter 100 -P 12 > teoFolded_chr10_10000000.sfs
 ````
@@ -415,8 +415,8 @@ echo "Starting job.."
 echo ""
 
 #for the sfs defining, in this case, a false ancestral allele (i.e. the B73 genome)
-echo "angsd -bam /home/sbyfield/HapMap2Teo/teo.bam.file.list.txt -doSaf 1 -out teoFolded_ch10_10000000 -anc /home/sbyfield/HapMap2Teo/Zea_mays.AGPv3.22.dna.genome.fa -GL 2 -fold 1 -P 18 -minMapQ 20 -minQ 40"
-angsd -bam /home/sbyfield/HapMap2Teo/teo.bam.file.list.txt -doSaf 1 -out teoFolded_ch10_10000000 -anc /home/sbyfield/HapMap2Teo/Zea_mays.AGPv3.22.dna.genome.fa -GL 2 -fold 1 -P 18 -minMapQ 20 -minQ 40
+echo "angsd -bam /home/sbyfield/HapMap2Teo/teo.bam.file.list.txt -doSaf 1 -out teoFolded_ch10_10000000 -anc /home/sbyfield/HapMap2Teo/Zea_mays.AGPv3.22.dna.genome.fa -GL 2 -fold 1 -P 18 -minMapQ 20 -minQ 40 -r 10:1-10000000"
+angsd -bam /home/sbyfield/HapMap2Teo/teo.bam.file.list.txt -doSaf 1 -out teoFolded_ch10_10000000 -anc /home/sbyfield/HapMap2Teo/Zea_mays.AGPv3.22.dna.genome.fa -GL 2 -fold 1 -P 18 -minMapQ 20 -minQ 40 -r 10:1-10000000
 #make it into a folded SFS, or minor allele spectrum
 echo "realSFS teoFolded_ch10_10000000.saf 15 -maxIter 100 -P 18 > teoFolded_ch10_10000000.sfs"
 realSFS teoFolded_ch10_10000000.saf 15 -maxIter 100 -P 18 > teoFolded_ch10_10000000.sfs
@@ -425,3 +425,40 @@ time
 echo ""
 echo "done"
 ```
+
+the ***JOB ID*** is: **1480928**
+
+```{r, echo=FALSE}
+sfs<-c(-0.153223, -2.646508, -3.789432, -4.343946, -4.692607, -5.005827, -5.342092, -5.703770, -6.064633, -6.384305, -6.621804, -6.751239, -6.774082, -6.720288, -6.635613, -6.560432)
+barplot(exp(sfs[-1]),col="darkgrey", names.arg=1:(length(sfs)-1), ylab="probability",xlab="minor allele freqquency", main = "Chr10:1-10,000,000")
+```
+
+
+I set antother job running for the whole genome using this command (in a slurm batch file):
+
+```
+#!/bin/bash
+#OUTDIR=/home/sbyfield/HapMap2Teo
+#SBATCH -D /home/sbyfield/HapMap2Teo/
+#SBATCH -o /home/sbyfield/HapMap2Teo/slurm-log/stdout_log-%j.txt
+#SBATCH -e /home/sbyfield/HapMap2Teo/slurm-log/stderr_log-%j.txt
+#SBATCH -J teo
+#SBATCH --cpus-per-task=18
+set -e
+set -u
+
+echo "Starting job.."
+echo ""
+
+#for the sfs defining, in this case, a false ancestral allele (i.e. the B73 genome)
+echo "angsd -bam /home/sbyfield/HapMap2Teo/teo.bam.file.list.txt -doSaf 1 -out teoFolded -anc /home/sbyfield/HapMap2Teo/Zea_mays.AGPv3.22.dna.genome.fa -GL 2 -fold 1 -P 18 -minMapQ 20 -minQ 40"
+angsd -bam /home/sbyfield/HapMap2Teo/teo.bam.file.list.txt -doSaf 1 -out teoFolded -anc /home/sbyfield/HapMap2Teo/Zea_mays.AGPv3.22.dna.genome.fa -GL 2 -fold 1 -P 18 -minMapQ 20 -minQ 40
+#make it into a folded SFS, or minor allele spectrum
+echo "realSFS teoFolded_ch10_10000000.saf 15 -maxIter 100 -P 18 > teoFolded.sfs"
+realSFS teoFolded.saf 15 -maxIter 100 -P 18 > teoFolded.sfs
+echo ""
+time
+echo ""
+echo "done"
+```
+with ***JOB ID**:1480932
