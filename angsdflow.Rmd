@@ -398,7 +398,7 @@ I will re-run analyses with the first 10,000,000 bp of chromosome 10 using the f
 >realSFS teoFolded_chr10_10000000.saf 15 -maxIter 100 -P 12 > teoFolded_chr10_10000000.sfs
 ````
 
-using teh following slurm batch file:
+using the following slurm batch file:
 
 ```
 #!/bin/bash
@@ -433,7 +433,228 @@ sfs<-c(-0.153223, -2.646508, -3.789432, -4.343946, -4.692607, -5.005827, -5.3420
 barplot(exp(sfs[-1]),col="darkgrey", names.arg=1:(length(sfs)-1), ylab="probability",xlab="minor allele freqquency", main = "Chr10:1-10,000,000")
 ```
 
+Following this I used ANGSD to estimate theta:
 
+```
+angsd -bam /home/sbyfield/HapMap2Teo/teo.bam.file.list.txt -out teoThetas_ch10_10000000 -doThetas 1 -doSaf 1 -fold 1 -pest teoFolded_chr10_100000.sfs -anc Zea_mays.AGPv3.22.dna.genome.fa -GL 2 -P 12 -r 10:1-10000000
+```
+
+Using this file:
+
+```
+
+#!/bin/bash
+#OUTDIR=/home/sbyfield/HapMap2Teo
+#SBATCH -D /home/sbyfield/HapMap2Teo/
+#SBATCH -o /home/sbyfield/HapMap2Teo/slurm-log/stdout_log-%j.txt
+#SBATCH -e /home/sbyfield/HapMap2Teo/slurm-log/stderr_log-%j.txt
+#SBATCH -J teo
+#SBATCH --cpus-per-task=12
+set -e
+set -u
+
+echo "Starting job.."
+time
+echo ""
+
+angsd -bam /home/sbyfield/HapMap2Teo/teo.bam.file.list.txt -out teoThetas_ch10_10000000 -doThetas 1 -doSaf 1 -fold 1 -pest teoFolded_ch10_10000000.sfs -anc Zea_mays.AGPv3.22.dna.genome.fa -GL 2 -P 12 -r 10:1-10000000 -minMapQ 20 -minQ 40
+
+echo ""
+time
+echo ""
+echo "done"
+```
+
+**ID** = 1483211
+
+Then I can estimate TajD over sliding windows using:
+
+```
+#!/bin/bash
+#OUTDIR=/home/sbyfield/HapMap2Teo
+#SBATCH -D /home/sbyfield/HapMap2Teo/
+#SBATCH -o /home/sbyfield/HapMap2Teo/slurm-log/stdout_log-%j.txt
+#SBATCH -e /home/sbyfield/HapMap2Teo/slurm-log/stderr_log-%j.txt
+#SBATCH -J teo
+#SBATCH --cpus-per-task=12
+set -e
+set -u
+
+echo ""
+time
+echo "making BED"
+
+thetaStat make_bed teoThetas_ch10_10000000.thetas.gz
+thetaStat do_stat teoThetas_ch10_10000000.thetas.gz -nChr 15 -win 5000 -step 1000  -outnames teothetasWindow_chr10_10000000.gz
+
+echo "done"
+time
+```
+
+The output look like this:
+```
+## thetaStat VERSION: 0.01 build:(Oct 23 2014,15:39:05)
+#(indexStart,indexStop)(firstPos_withData,lastPos_withData)(WinStart,WinStop)  Chr	WinCenter	tW	tP	tF	tH	tL	Tajima	fuf	fud	fayh	zeng	nSites
+(71,388)(300,1530)(300,800)	10	550	10.460646	6.107603	0.000000	0.000000	0.000000	-1.762926	0.951768	1.945277	0.634197	-1.207356	317
+(137,388)(400,1530)(400,900)	10	650	8.275646	4.823003	0.000000	0.000000	0.000000	-1.744697	0.924989	1.889293	0.628344	-1.191207	251
+(237,388)(500,1530)(500,1000)	10	750	4.888378	2.850494	0.000000	0.000000	0.000000	-1.673753	0.854698	1.733225	0.613838	-1.141940	151
+(296,388)(611,1530)(600,1100)	10	850	3.259762	2.020438	0.000000	0.000000	0.000000	-1.458366	0.836464	1.586624	0.634632	-1.089353	92
+(346,388)(700,1530)(700,1200)	10	950	1.506088	0.941821	0.000000	0.000000	0.000000	-1.258182	0.681794	1.267787	0.587341	-0.950147	42
+(388,388)(1530,1530)(800,1300)	10	1050	0.000000	0.000000	0.000000	0.000000	0.000000	0.000000	-nan	-nan	-nan	-nan	0
+(388,388)(1530,1530)(900,1400)	10	1150	0.000000	0.000000	0.000000	0.000000	0.000000	0.000000	-nan	-nan	-nan	-nan	0
+(388,388)(1530,1530)(1000,1500)	10	1250	0.000000	0.000000	0.000000	0.000000	0.000000	0.000000	-nan	-nan	-nan	-nan	0
+```
+```{r}
+library(ggplot2)
+#load in the data
+TJD<-read.table("/Users/simonrenny-byfield/test_angst/teothetasWindow_chr10_10000000.gz.pestPG", header = T, sep = "\t")
+plot(TJD[,14]/5000,TJD[,9], pch = 16, cex=.5, xlab="proportion of bases covered", ylab = "Tajima's D")
+plot(TJD[,3]/(10^6),TJD[,9], pch = 16, cex=.5, xlab = "position (Mbp)",ylab = "Tajima's D")
+#make a data table to plot with ggplot
+#TajimaD<-data.frame("pos"=TJD[,3],"prop"=TJD[,3],"TD"=TJD[,9])
+#plt <- ggplot(TajimaD, aes(x= prop,y=TD))+ 
+#  geom_point()+
+#    stat_summary(geom="ribbon", fun.ymin="mean", fun.ymax="mean")
+#plt
+```
+
+The mapping quality seems to be an issue and also I need to limit the number of sites to only those where -minInd == 12 of the 15 samples. Note that:
+
+* -minInd 12
+* -minMapQ 40 
+* -minQ 40
+
+```
+#!/bin/bash
+#OUTDIR=/home/sbyfield/HapMap2Teo
+#SBATCH -D /home/sbyfield/HapMap2Teo/
+#SBATCH -o /home/sbyfield/HapMap2Teo/slurm-log/stdout_log-%j.txt
+#SBATCH -e /home/sbyfield/HapMap2Teo/slurm-log/stderr_log-%j.txt
+#SBATCH -J teo
+#SBATCH --cpus-per-task=18
+set -e
+set -u
+
+echo "Starting job.."
+echo ""
+
+#for the sfs defining, in this case, a false ancestral allele (i.e. the B73 genome)
+echo "angsd -bam /home/sbyfield/HapMap2Teo/teo.bam.file.list.txt -doSaf 1 -out teoFolded_chr10_10M_minInd12 -anc /home/sbyfield/HapMap2Teo/Zea_mays.AGPv3.22.dna.genome.fa -GL 2 -r 10:1-10000000 -fold 1 -P 18 -minMapQ 40 -minQ 40 -minInd 12"
+angsd -bam /home/sbyfield/HapMap2Teo/teo.bam.file.list.txt -doSaf 1 -out teoFolded_chr10_10M_minInd12 -anc /home/sbyfield/HapMap2Teo/Zea_mays.AGPv3.22.dna.genome.fa -GL 2 -r 10:1-10000000 -fold 1 -P 18 -minMapQ 40 -minQ 40 -minInd 12
+#make it into a folded SFS, or minor allele spectrum
+echo "realSFS teoFolded_chr10_10M_minInd12.saf 15 -maxIter 100 -P 18 > teoFolded_chr10_10M_minInd12.sfs"
+realSFS teoFolded_chr10_10M_minInd12.saf 15 -maxIter 100 -P 18 > teoFolded_chr10_10M_minInd12.sfs
+echo ""
+time
+echo ""
+echo "done"
+```
+
+Next step is to calculate thetas over the genomic region of interest using:
+```
+#!/bin/bash
+#OUTDIR=/home/sbyfield/HapMap2Teo
+#SBATCH -D /home/sbyfield/HapMap2Teo/
+#SBATCH -o /home/sbyfield/HapMap2Teo/slurm-log/stdout_log-%j.txt
+#SBATCH -e /home/sbyfield/HapMap2Teo/slurm-log/stderr_log-%j.txt
+#SBATCH -J teo
+#SBATCH --cpus-per-task=12
+set -e
+set -u
+
+echo "Starting job.."
+time
+echo ""
+
+>angsd -bam /home/sbyfield/HapMap2Teo/teo.bam.file.list.txt -out teoFolded_chr10_10M_minInd12.sfs -doThetas 1 -doSaf 1 -fold 1 -pest teoFolded_chr10_10M_minInd12.sfs -anc Zea_mays.AGPv3.22.dna.genome.fa -GL 2 -P 12 -r 10:1-10000000 -minMapQ 40 -minQ 40 minInd 12
+
+echo ""
+time
+echo ""
+echo "done"
+```
+
+Now to scan the genome by window, so we can plot the data using:
+
+```
+#!/bin/bash
+#OUTDIR=/home/sbyfield/HapMap2Teo
+#SBATCH -D /home/sbyfield/HapMap2Teo/
+#SBATCH -o /home/sbyfield/HapMap2Teo/slurm-log/stdout_log-%j.txt
+#SBATCH -e /home/sbyfield/HapMap2Teo/slurm-log/stderr_log-%j.txt
+#SBATCH -J teo
+#SBATCH --cpus-per-task=12
+set -e
+set -u
+
+echo ""
+time
+echo "making BED"
+
+thetaStat make_bed teoFolded_chr10_10M_minInd12.sfs.thetas.gz
+thetaStat do_stat teoFolded_chr10_10M_minInd12.sfs.thetas.gz -nChr 15 -win 5000 -step 1000  -outnames teoFolded_chr10_10M_minInd12
+
+echo "done"
+time
+```
+
+
+
+Jeff notes that these line (from HapMap2) are all selfed for many generations and so need the expected heterozygosity will change. These samples are ***Inbred**. You can indicate this to ANGSD with an *inbreeding file* containing the appropriate inbreeding coefficient for each sample. In this case 1.
+
+```
+#!/bin/bash
+#OUTDIR=/home/sbyfield/HapMap2Teo
+#SBATCH -D /home/sbyfield/HapMap2Teo/
+#SBATCH -o /home/sbyfield/HapMap2Teo/slurm-log/stdout_log-%j.txt
+#SBATCH -e /home/sbyfield/HapMap2Teo/slurm-log/stderr_log-%j.txt
+#SBATCH -J teo
+#SBATCH --cpus-per-task=18
+
+#!/bin/bash
+#OUTDIR=/home/sbyfield/HapMap2Teo
+#SBATCH -D /home/sbyfield/HapMap2Teo/
+#SBATCH -o /home/sbyfield/HapMap2Teo/slurm-log/stdout_log-%j.txt
+#SBATCH -e /home/sbyfield/HapMap2Teo/slurm-log/stderr_log-%j.txt
+#SBATCH -J teo
+#SBATCH --cpus-per-task=18
+
+#angsd -bam /home/sbyfield/HapMap2Teo/teo.bam.file.list.txt -doSaf 1 -out teoFolded_chr10_100M_minInd15 -anc /home/sbyfield/HapMap2Teo/Zea_mays.AGPv3.22.dna.genome.fa -GL 2 -r 10:1-100000000 -fold 1 -P 18 -minMapQ 30 -minQ 40 -minInd 15 -indF InbreedingCoEff.txt
+realSFS teoFolded_chr10_100M_minInd15.saf 15 -maxIter 100 -P 18 > teoFolded_chr10_100M_minInd15.sfs 
+angsd -bam /home/sbyfield/HapMap2Teo/teo.bam.file.list.txt -out teoFolded_chr10_100M_minInd15 -doThetas 1 -doSaf 1 -fold 1 -pest teoFolded_chr10_100M_minInd15.sfs -anc Zea_mays.AGPv3.22.dna.genome.fa -GL 2 -P 12 -r 10:1-100000000 -minMapQ 30 -minQ 40 minInd 15 -indF InbreedingCoEff.txt
+thetaStat make_bed teoFolded_chr10_100M_minInd15.sfs.thetas.gz
+thetaStat do_stat teoFolded_chr10_100M_minInd15.sfs.thetas.gz -nChr 15 -win 5000 -step 1000  -outnames teoFolded_chr10_100M_minInd15 -indF InbreedingCoEff.txt
+
+echo "done"
+time
+```
+```{r}
+library(ggplot2)
+#load in the data
+TJD<-read.table("/Users/simonrenny-byfield/test_angst/teoFolded_chr10_10M_minInd12.pestPG", header = T, sep = "\t")
+plot(TJD[,14]/5000,TJD[,9], pch = 16, cex=.5, xlab="proportion of bases covered", ylab = "Tajima's D")
+plot(TJD[,3]/(10^6),TJD[,9], pch = 16, cex=.5, xlab = "position (Mbp)",ylab = "Tajima's D")
+hist(TJD[,9][TJD[,9] != 0], col = "cornflowerblue", xlab="Tajima's D")
+#make a data table to plot with ggplot
+#TajimaD<-data.frame("pos"=TJD[,3],"prop"=TJD[,3],"TD"=TJD[,9])
+#plt <- ggplot(TajimaD, aes(x= prop,y=TD))+ 
+#  geom_point()+
+#    stat_summary(geom="ribbon", fun.ymin="mean", fun.ymax="mean")
+#plt
+```
+
+
+
+
+
+
+
+
+
+
+
+
+###Full Genome Comparisons####
 I set antother job running for the whole genome using this command (in a slurm batch file):
 
 ```
