@@ -633,7 +633,11 @@ library(ggplot2)
 #load in the data
 TJD<-read.table("/Users/simonrenny-byfield/test_angst/teoFolded_chr10_100M_minInd15.pestPG", header = T, sep = "\t")
 plot(TJD[,14]/5000,TJD[,9], pch = 16, cex=.5, xlab="proportion of bases covered", ylab = "Tajima's D")
+scatter.smooth(x=TJD[,14]/5000, y=TJD[,9], cex = 0.01,col = "red", lwd = 3, lty = 3, span = 0.3, family = "gaussian")
+plot(TJD[,14]/5000,(TJD[,5]/TJD[,14]), pch = 16, cex=.5, xlab="proportion of bases covered", ylab = "pi")
+scatter.smooth(x=TJD[,14]/5000, y=(TJD[,5]/TJD[,14]), cex = 0.01,col = "red", lwd = 3, lty = 3, span = 0.3, family = "gaussian")
 plot(TJD[,3]/(10^6),TJD[,9], pch = 16, cex=.5, xlab = "position (Mbp)",ylab = "Tajima's D")
+
 hist(TJD[,9][TJD[,9] != 0], col = "cornflowerblue", xlab="Tajima's D")
 #make a data table to plot with ggplot
 #TajimaD<-data.frame("pos"=TJD[,3],"prop"=TJD[,3],"TD"=TJD[,9])
@@ -658,9 +662,9 @@ most importantly I was changed the -doSaf paramter to 2 (-doSaf 2), which *DOES 
 #SBATCH -J teo
 #SBATCH --cpus-per-task=18
 
-angsd -bam /home/sbyfield/HapMap2Teo/teo.bam.file.list.txt  -doMaf 2  -doMajorMinor 1 -doSaf 2 -out teoFolded_chr10_100M_minInd15 -anc /home/sbyfield/HapMap2Teo/Zea_mays.AGPv3.22.dna.genome.fa -GL 2 -r 10:1-100000000 -fold 1 -P 18 -minMapQ 30 -minQ 20 -minInd 15 -indF InbreedingCoEff.txt
-realSFS teoFolded_chr10_100M_minInd15.saf 15 -maxIter 100 -P 18 > teoFolded_chr10_100M_minInd15.sfs
-angsd -bam /home/sbyfield/HapMap2Teo/teo.bam.file.list.txt -doMaf 2 -doMajorMinor 1 -out teoFolded_chr10_100M_minInd15.sfs -doThetas 1 -doSaf 2 -fold 1 -pest teoFolded_chr10_100M_minInd15.sfs -anc Zea_mays.AGPv3.22.dna.genome.fa -GL 2 -P 12 -r 10:1-100000000 -minMapQ 30 -minQ 20 -indF InbreedingCoEff.txt
+#angsd -bam /home/sbyfield/HapMap2Teo/teo.bam.file.list.txt -doMaf 1 -uniqueOnly 0 -doMajorMinor 1 -doSaf 2 -out teoFolded_chr10_100M_minInd15 -anc /home/sbyfield/HapMap2Teo/Zea_mays.AGPv3.22.dna.genome.fa -GL 2 -r 10:1-100000000 -fold 1 -P 18 -minMapQ 30 -minQ 20 -minInd 15 -indF InbreedingCoEff.txt
+#realSFS teoFolded_chr10_100M_minInd15.saf 15 -maxIter 100 -P 18 > teoFolded_chr10_100M_minInd15.sfs
+angsd -bam /home/sbyfield/HapMap2Teo/teo.bam.file.list.txt -out teoFolded_chr10_100M_minInd15.sfs -doThetas 1 -doSaf 2 -fold 1 -pest teoFolded_chr10_100M_minInd15.sfs -anc Zea_mays.AGPv3.22.dna.genome.fa -GL 2 -P 12 -r 10:1-100000000 -minMapQ 30 -minQ 20 -indF InbreedingCoEff.txt -doMajorMinor 1 -doMaf 1
 thetaStat make_bed teoFolded_chr10_100M_minInd15.sfs.thetas.gz
 thetaStat do_stat teoFolded_chr10_100M_minInd15.sfs.thetas.gz -nChr 15 -win 5000 -step 1000  -outnames teoFolded_chr10_100M_minInd15
 
@@ -668,14 +672,6 @@ echo "done"
 time
 
 ```
-
-
-
-
-
-
-
-
 
 ###Full Genome Comparisons####
 I set antother job running for the whole genome using this command (in a slurm batch file):
@@ -688,21 +684,16 @@ I set antother job running for the whole genome using this command (in a slurm b
 #SBATCH -e /home/sbyfield/HapMap2Teo/slurm-log/stderr_log-%j.txt
 #SBATCH -J teo
 #SBATCH --cpus-per-task=18
-set -e
-set -u
 
-echo "Starting job.."
-echo ""
+echo "Starting job:"
+date
 
-#for the sfs defining, in this case, a false ancestral allele (i.e. the B73 genome)
-echo "angsd -bam /home/sbyfield/HapMap2Teo/teo.bam.file.list.txt -doSaf 1 -out teoFolded -anc /home/sbyfield/HapMap2Teo/Zea_mays.AGPv3.22.dna.genome.fa -GL 2 -fold 1 -P 18 -minMapQ 20 -minQ 40"
-angsd -bam /home/sbyfield/HapMap2Teo/teo.bam.file.list.txt -doSaf 1 -out teoFolded -anc /home/sbyfield/HapMap2Teo/Zea_mays.AGPv3.22.dna.genome.fa -GL 2 -fold 1 -P 18 -minMapQ 20 -minQ 40
-#make it into a folded SFS, or minor allele spectrum
-echo "realSFS teoFolded_ch10_10000000.saf 15 -maxIter 100 -P 18 > teoFolded.sfs"
-realSFS teoFolded.saf 15 -maxIter 100 -P 18 > teoFolded.sfs
-echo ""
-time
-echo ""
+angsd -bam /home/sbyfield/HapMap2Teo/teo.bam.file.list.txt -doMaf 1 -uniqueOnly 0 -doMajorMinor 1 -doSaf 2 -out teoFolded -anc /home/sbyfield/HapMap2Teo/Zea_mays.AGPv3.22.dna.genome.fa -GL 2 -fold 1 -P 18 -minMapQ 30 -minQ 20 -minInd 15 -indF InbreedingCoEff.txt
+realSFS teoFolded 15 -maxIter 100 -P 18 > teoFolded
+angsd -bam /home/sbyfield/HapMap2Teo/teo.bam.file.list.txt -out teoFolded.sfs -doThetas 1 -doSaf 2 -fold 1 -pest teoFolded.sfs -anc Zea_mays.AGPv3.22.dna.genome.fa -GL 2 -P 12 -minMapQ 30 -minQ 20 -indF InbreedingCoEff.txt -doMajorMinor 1 -doMaf 1
+thetaStat make_bed teoFolded.sfs.thetas.gz
+thetaStat do_stat teoFolded.sfs.thetas.gz -nChr 15 -win 5000 -step 1000  -outnames teoFolded
+
 echo "done"
+date
 ```
-with **JOB ID**:1480932
