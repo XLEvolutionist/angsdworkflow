@@ -674,7 +674,7 @@ time
 ```
 
 ###Full Genome Comparisons####
-I set antother job running for the whole genome using this command (in a slurm batch file):
+I removed the minimum coverage (of individuals, i.e. minInd). Once the analysis is run we can then parse the data according to how many individuals are represented for any given position. I set antother job running for the whole genome using this command (in a slurm batch file):
 
 ```
 #!/bin/bash
@@ -685,14 +685,14 @@ I set antother job running for the whole genome using this command (in a slurm b
 #SBATCH -J teo
 #SBATCH --cpus-per-task=18
 
-echo "Starting job:"
+echo "Starting jog:"
 date
 
-angsd -bam /home/sbyfield/HapMap2Teo/teo.bam.file.list.txt -doMaf 1 -uniqueOnly 0 -doMajorMinor 1 -doSaf 2 -out teoFolded -anc /home/sbyfield/HapMap2Teo/Zea_mays.AGPv3.22.dna.genome.fa -GL 2 -fold 1 -P 18 -minMapQ 30 -minQ 20 -minInd 15 -indF InbreedingCoEff.txt
-realSFS teoFolded 15 -maxIter 100 -P 18 > teoFolded
-angsd -bam /home/sbyfield/HapMap2Teo/teo.bam.file.list.txt -out teoFolded.sfs -doThetas 1 -doSaf 2 -fold 1 -pest teoFolded.sfs -anc Zea_mays.AGPv3.22.dna.genome.fa -GL 2 -P 12 -minMapQ 30 -minQ 20 -indF InbreedingCoEff.txt -doMajorMinor 1 -doMaf 1
+angsd -bam /home/sbyfield/HapMap2Teo/teo.bam.file.list.txt -doMaf 1 -uniqueOnly 0 -doMajorMinor 1 -doSaf 2 -out teoFolded -anc /home/sbyfield/HapMap2Teo/Zea_mays.AGPv3.22.dna.genome.fa -GL 2 -fold 1 -P 18 -minMapQ 30 -minQ 20 -indF InbreedingCoEff.txt
+realSFS teoFolded.saf 15 -maxIter 100 -P 18 > teoFolded.sfs
+angsd -bam /home/sbyfield/HapMap2Teo/teo.bam.file.list.txt -out teoFolded.sfs -doThetas 1 -doSaf 2 -fold 1 -pest teoFolded.sfs -anc Zea_mays.AGPv3.22.dna.genome.fa -GL 2 -P 18 -minMapQ 30 -minQ 20 -indF InbreedingCoEff.txt -doMajorMinor 1 -doMaf 1
 thetaStat make_bed teoFolded.sfs.thetas.gz
-thetaStat do_stat teoFolded.sfs.thetas.gz -nChr 15 -win 5000 -step 1000  -outnames teoFolded
+thetaStat do_stat teoFolded.sfs.thetas.gz -nChr 15 -win 5000 -step 1000  -outnames teoFolded.thetasWindow -P 18
 
 echo "done"
 date
