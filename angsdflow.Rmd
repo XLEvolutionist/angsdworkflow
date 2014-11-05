@@ -702,9 +702,9 @@ library(ggplot2)
 #load in the data
 TJD<-read.table("/Users/simonrenny-byfield/test_angst/whole_genome/teoFolded.thetasWindow.pestPG", header = T, sep = "\t")
 plot(TJD[,14]/5000,TJD[,9], pch = 16, cex=.5, xlab="proportion of bases covered", ylab = "Tajima's D")
-scatter.smooth(x=TJD[,14]/5000, y=TJD[,9], cex = 0.01,col = "red", lwd = 3, lty = 3, span = 0.3, family = "gaussian")
+scatter.smooth(x=TJD[,14]/5000, y=TJD[,9], cex = 0.01,col = "red", lwd = 3, lty = 3, span = 0.3, family = "gaussian",xlab="proportion of bases covered", ylab = "Tajima's D")
 plot(TJD[,14]/5000,(TJD[,5]/TJD[,14]), pch = 16, cex=.5, xlab="proportion of bases covered", ylab = "pi")
-scatter.smooth(x=TJD[,14]/5000, y=(TJD[,5]/TJD[,14]), cex = 0.01,col = "red", lwd = 3, lty = 3, span = 0.3, family = "gaussian")
+scatter.smooth(x=TJD[,14]/5000, y=(TJD[,5]/TJD[,14]), cex = 0.01,col = "red", lwd = 3, lty = 3, span = 0.3, family = "gaussian",xlab="proportion of bases covered", ylab = "pi")
 plot(TJD[,3]/(10^6),TJD[,9], pch = 16, cex=.5, xlab = "position (Mbp)",ylab = "Tajima's D")
 
 hist(TJD[,9][TJD[,9] != 0], col = "cornflowerblue", xlab="Tajima's D")
@@ -715,4 +715,55 @@ hist(TJD[,9][TJD[,9] != 0], col = "cornflowerblue", xlab="Tajima's D")
 #    stat_summary(geom="ribbon", fun.ymin="mean", fun.ymax="mean")
 #plt
 ```
+
+The output of the above pipeline does not produce per bp estimates of Tajima's D and Pi. Nor do we know how many individuals are included in each window. We can find the number of individuals with data for each bp using the MAFs file ("teoFolded.sfs.mafs.gz") which looks like this:
+
+```
+chromo  position	major	minor	anc	knownEM	nInd
+scaffold_47	1	C	A	C	0.000000	1
+scaffold_47	2	T	A	T	0.000000	1
+scaffold_47	3	C	A	C	0.000000	1
+scaffold_47	4	C	A	C	0.000000	1
+scaffold_47	5	C	A	C	0.000000	1
+scaffold_47	6	C	A	C	0.000000	1
+scaffold_47	7	T	A	T	0.000000	1
+scaffold_47	8	A	C	A	0.000000	1
+scaffold_47	9	A	C	A	0.000000	1
+
+```
+
+So it look likes we will have to incorperate data from two separate analyses. 
+
+We can also estimate Theta, Pi and Tajima's D on a bp bases, although the file size will be huge. I ran the following command to get this done, hasing out commands that follow on from previous runs (i.e. the first three calls in the file had already been done):
+
+```
+#!/bin/bash
+#OUTDIR=/home/sbyfield/HapMap2Teo
+#SBATCH -D /home/sbyfield/HapMap2Teo/
+#SBATCH -o /home/sbyfield/HapMap2Teo/slurm-log/stdout_log-%j.txt
+#SBATCH -e /home/sbyfield/HapMap2Teo/slurm-log/stderr_log-%j.txt
+#SBATCH -J teo
+#SBATCH --cpus-per-task=18
+
+echo "Starting jog:"
+date
+
+#angsd -bam /home/sbyfield/HapMap2Teo/teo.bam.file.list.txt -doMaf 1 -uniqueOnly 0 -doMajorMinor 1 -doSaf 2 -out teoFolded -anc /home/sbyfield/HapMap2Teo/Zea_mays.AGPv3.22.dna.geno$
+#realSFS teoFolded.saf 15 -maxIter 100 -P 18 > teoFolded.sfs
+#angsd -bam /home/sbyfield/HapMap2Teo/teo.bam.file.list.txt -out teoFolded.sfs -doThetas 1 -doSaf 2 -fold 1 -pest teoFolded.sfs -anc Zea_mays.AGPv3.22.dna.genome.fa -GL 2 -P 18 -mi$
+#thetaStat make_bed teoFolded.sfs.thetas.gz
+thetaStat do_stat teoFolded.sfs.thetas.gz -nChr 15 -outnames teoFolded.thetasPerBp 
+
+echo "done"
+date
+```
+
+Questions:
+
+* Is it sensible to have "mean number of individuals included"" per window?
+
+* Is it to do the analysis per bp (i.e. huge plots and huge files to deal with)
+
+
+
 
