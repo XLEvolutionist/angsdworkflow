@@ -697,3 +697,22 @@ thetaStat do_stat teoFolded.sfs.thetas.gz -nChr 15 -win 5000 -step 1000  -outnam
 echo "done"
 date
 ```
+```{r}
+library(ggplot2)
+#load in the data
+TJD<-read.table("/Users/simonrenny-byfield/test_angst/whole_genome/teoFolded.thetasWindow.pestPG", header = T, sep = "\t")
+plot(TJD[,14]/5000,TJD[,9], pch = 16, cex=.5, xlab="proportion of bases covered", ylab = "Tajima's D")
+scatter.smooth(x=TJD[,14]/5000, y=TJD[,9], cex = 0.01,col = "red", lwd = 3, lty = 3, span = 0.3, family = "gaussian")
+plot(TJD[,14]/5000,(TJD[,5]/TJD[,14]), pch = 16, cex=.5, xlab="proportion of bases covered", ylab = "pi")
+scatter.smooth(x=TJD[,14]/5000, y=(TJD[,5]/TJD[,14]), cex = 0.01,col = "red", lwd = 3, lty = 3, span = 0.3, family = "gaussian")
+plot(TJD[,3]/(10^6),TJD[,9], pch = 16, cex=.5, xlab = "position (Mbp)",ylab = "Tajima's D")
+
+hist(TJD[,9][TJD[,9] != 0], col = "cornflowerblue", xlab="Tajima's D")
+#make a data table to plot with ggplot
+#TajimaD<-data.frame("pos"=TJD[,3],"prop"=TJD[,3],"TD"=TJD[,9])
+#plt <- ggplot(TajimaD, aes(x= prop,y=TD))+ 
+#  geom_point()+
+#    stat_summary(geom="ribbon", fun.ymin="mean", fun.ymax="mean")
+#plt
+```
+
