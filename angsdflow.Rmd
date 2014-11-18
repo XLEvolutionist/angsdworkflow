@@ -697,7 +697,7 @@ thetaStat do_stat teoFolded.sfs.thetas.gz -nChr 15 -win 5000 -step 1000  -outnam
 echo "done"
 date
 ```
-```{r}
+```{r, eval = FALSE}
 library(ggplot2)
 #load in the data
 TJD<-read.table("/Users/simonrenny-byfield/test_angst/whole_genome/teoFolded.thetasWindow.pestPG", header = T, sep = "\t")
@@ -734,7 +734,7 @@ scaffold_47	9	A	C	A	0.000000	1
 
 So it look likes we will have to incorperate data from two separate analyses. 
 
-We can also estimate Theta, Pi and Tajima's D on a bp bases, although the file size will be huge. I ran the following command to get this done, hasing out commands that follow on from previous runs (i.e. the first three calls in the file had already been done):
+We can also estimate Theta, Pi and Tajima's D on a bp bases, although the file size will be huge. I ran the following command to get this done, hasing out commands that follow on from previous runs (i.e. the first four calls in the chain of commands had already been done):
 
 ```
 #!/bin/bash
@@ -752,11 +752,14 @@ date
 #realSFS teoFolded.saf 15 -maxIter 100 -P 18 > teoFolded.sfs
 #angsd -bam /home/sbyfield/HapMap2Teo/teo.bam.file.list.txt -out teoFolded.sfs -doThetas 1 -doSaf 2 -fold 1 -pest teoFolded.sfs -anc Zea_mays.AGPv3.22.dna.genome.fa -GL 2 -P 18 -mi$
 #thetaStat make_bed teoFolded.sfs.thetas.gz
-thetaStat do_stat teoFolded.sfs.thetas.gz -nChr 15 -outnames teoFolded.thetasPerBp 
-
+thetaStat do_stat teoFolded.sfs.thetas.gz -nChr 15 -win 1 -step 1 -outnames teoFolded.thetasPerBp 
+cut -d -f 2,3,4,5,9 teoFolded.thetasPerBp.pestPG > teoFolded.thetasPerBp_Reduced.txt
+rm teoFolded.thetasPerBp.pestPG
 echo "done"
 date
 ```
+cut removes some redundant columms.
+
 
 Questions:
 
@@ -764,6 +767,64 @@ Questions:
 
 * Is it to do the analysis per bp (i.e. huge plots and huge files to deal with)
 
+***Ploting coverage over the genome***
 
+The program BEDtools has useful function called genomecov which takes input .bam files and assess read coverage over the genome. I used the following command the analysze the genome for all 15 samples, and submitting the job to the serial queue:
+
+```
+#!/bin/bash -l
+
+#SBATCH -D /home/sbyfield/HapMap2Teo/
+#SBATCH -J coverage
+#SBATCH -o /home/sbyfield/HapMap2Teo/out-%j.txt
+#SBATCH -e /home/sbyfield/HapMap2Teo/error-%j.txt
+#SBATCH --array=1-19
+
+echo "Starting Job"
+date
+ls *.bam | xargs -n1 -I{} basename {} .bam | \
+#ls *.bam | xargs -n1 -I{} basename {} .out | \
+   sort -s | sed -n "$SLURM_ARRAY_TASK_ID"p | \
+   xargs -n1 -I{} bedtools genomecov -bga -ibam {}.bam -g maize.genome.file > coverage.$SLURM_ARRAY_TASK_ID;
+   #xargs -n1 -I{} COMMAND= "bedtools genomecov -ibam {} -g maize.genome.file > {}.coverage";   
+   #$COMMAND
+ls *.bam | xargs -n1 -I{} basename {} .bam | \
+   sort -s | sed -n "$SLURM_ARRAY_TASK_ID"p | \
+   xargs -n1 -I{} mv coverage.$SLURM_ARRAY_TASK_ID {}.coverage
+
+echo "Done"
+date
+
+```
+
+But firstly it is probably a good idea, for plotting at least, to remove all the loose scaffolds and focus onyl on the chromosomes. Filter out scaffolds and Pt and Mt genomes using sed and grep like this:
+
+```
+>sed -n '/scaffold/!p' /Users/simonrenny-byfield/test_angst/whole_genome/coverage/TIL06-TIP496_merged.coverage | sed -n '/Pt/!p' | sed -n '/Mt/!p' > /Users/simonrenny-byfield/test_angst/whole_genome/coverage/TIL06-TIP496_merged_reduced.coverage
+
+```
+First try and import the data to R
+
+```{r}
+library(data.table)
+library(ggplot2)
+object<-fread("/Users/simonrenny-byfield/test_angst/whole_genome/coverage/TIL04-TIP285_merged_reduced.coverage")
+object<-data.table(object)
+chrs<-unique(object$V1)
+#get the data per chr
+Data10<-object[object$V1==10,]
+#thin the data, take only the third row
+Data10<-Data10[seq(0,dim(Data10)[1],1000)]
+
+ggplot(data=Data10, aes(x=Data10$V3, y=log(Data10$V4+1))) +
+  #geom_line() +
+    geom_area()
+
+for ( i in chrs) {
+  print(i)
+  
+}#
+
+```
 
 
