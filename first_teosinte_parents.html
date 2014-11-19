@@ -59,7 +59,7 @@ if (window.hljs && document.readyState && document.readyState === "complete") {
 </div>
 
 
-<p>This document is my record of the analysis performed on the first set of data avaialble for the ~70 or so teosinte plants from Pal Marchico, Mexico. The document is modelled on an <a href="https://github.com/XLEvolutionist/angsdworkflow">earlier</a> practice run and on some dummy HapMap2 data. The new data are from the Pal Marchico population and have recently been sequences and UC Berkely. Vince Buffalo has maped and sorted the reads using his <a href="https://github.com/RILAB/paap">paap.py</a> pipeline and the .bam files ready for input into <a href="http://popgen.dk/wiki/index.php/ANGSD">angsd</a> and <a href="http://compbio.cs.toronto.edu/CNVer/">CNVer</a>.</p>
+<p>This document is my record of the analysis performed on the first set of data avaialble for the ~70 or so teosinte plants from Pal Marchico, Mexico. The document is modelled on an <a href="https://github.com/XLEvolutionist/angsdworkflow">earlier</a> practice run and on some dummy HapMap2 data. The new data are from the Pal Marchico population and have recently been sequences and UC Berkely. Vince Buffalo has maped and sorted the reads using his <a href="https://github.com/RILAB/paap">paap.py</a> pipeline and the .bam files ready for input into <a href="http://popgen.dk/wiki/index.php/ANGSD">angsd</a>. On the other hand the mapping parameters make the .bam files unsuitable for use with <a href="http://compbio.cs.toronto.edu/CNVer/">CNVer</a>. This is because the mapping that is currently done has used paired end data and, does not have them interleaved as required. The authors of CNVer strongly recommend using bowtie to map the data, and suggest some <a href="http://compbio.cs.toronto.edu/cnver/README-0.8.1.txt">parameters</a> to use. This essentailly means that the read will have to be mapped twice, once using BWA-MEM (for GLs, SFS, pi and Tajima’s D) and again with bowtie. <code>head()</code></p>
 <div id="estimating-the-site-frequency-spectrum" class="section level2">
 <h2>Estimating the site frequency spectrum</h2>
 <p>First estimate the site allele frequency likelihood. This requires several things listed below:</p>
@@ -124,7 +124,24 @@ samtools index ${file1[$SLURM_ARRAY_TASK_ID]}
 
 echo &quot;End Job: &quot;
 date</code></pre>
-<p>In order to calculate the inbreeding coefficient we need to know the genotype liklihoods of each sample. This can be achieved with</p>
+<p>In order to calculate the inbreeding coefficient we need to know the genotype liklihoods of each sample. The genotype likelihood for each samples are calculated with:</p>
+<pre><code>#!/bin/bash
+#OUTDIR=/home/sbyfield/teosinte_parents/angsd_output
+#SBATCH -D /home/sbyfield/teosinte_parents/angsd_output
+#SBATCH -o /home/sbyfield/teosinte_parents/logs/out_log-%j.txt
+#SBATCH -e /home/sbyfield/teosinte_parents/logs/err_log-%j.txt
+
+echo &quot;Starting Job: &quot;
+date
+
+COMMAND=&quot;angsd -bam /home/sbyfield/teosinte_parents/file.list.txt -doGlf 3 -GL 1 -out teo_parents20 -doMaf 2 -SNP_pval 1e-6 -doMajorMinor 1 -nThreads 16 -r 10&quot;
+echo $COMMAND
+
+angsd -bam /home/sbyfield/teosinte_parents/file.list.txt -doGlf 3 -GL 1 -out teo_parents20 -doMaf 2 -SNP_pval 1e-6 -doMajorMinor 1 -nThreads 16 -r 10
+
+echo &quot;Ending Job: &quot;
+date</code></pre>
+<p>Note that in this case the <span class="math">\(-GL\space1\)</span> parameter means that the GLs are calculated using the SAMtools algorithm, detailed <a href="https://www.broadinstitute.org/gatk/media/docs/Samtools.pdf">here</a>. In addition only chromosome 10 is analysed in this case.</p>
 </div>
 
 
