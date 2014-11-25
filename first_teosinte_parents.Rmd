@@ -1,42 +1,35 @@
 ---
-title: "Angsd analysis of first 20 Teosinte parents (Pal Marchico population)"
+title: "Angsd analysis of first 20 Teosinte parents (Palmar Chico)"
 author: "Simon Renny-Byfield"
 date: "November 17, 2014"
-output: html_document
+output: html_vignette
 ---
 
-This document is my record of the analysis performed on the first set of data avaialble for the ~70 or so teosinte plants from Pal Marchico, Mexico. The document is modelled on an [earlier](https://github.com/XLEvolutionist/angsdworkflow) practice run and on some dummy HapMap2 data. The new data are from the Pal Marchico population and have recently been sequences and UC Berkely. Vince Buffalo has maped and sorted the reads using his [paap.py](https://github.com/RILAB/paap) pipeline and the .bam files ready for input into [angsd](http://popgen.dk/wiki/index.php/ANGSD). On the other hand the mapping parameters make the .bam files unsuitable for use with [CNVer](http://compbio.cs.toronto.edu/CNVer/). This is because the mapping that is currently done has used paired end data and, does not have them interleaved as required. The authors of CNVer strongly recommend using bowtie to map the data, and suggest some [parameters](http://compbio.cs.toronto.edu/cnver/README-0.8.1.txt) to use. This essentailly means that the read will have to be mapped twice, once using BWA-MEM (for GLs, SFS, pi and Tajima's D) and again with bowtie. ``head()``
+This document is my record of the analysis performed on the first set of sequence data (20 individuals) avaialble for teosinte plants from PalMar Chico, Mexico. The document is modelled on an [earlier](https://github.com/XLEvolutionist/angsdworkflow) practice run on some dummy HapMap2 data. The new data are from the Palmar Chico population and have recently been sequences and UC Berkely. 
 
-##Estimating the site frequency spectrum##
+Vince Buffalo has maped and sorted the reads using his [paap.py](https://github.com/RILAB/paap) pipeline and the .bam files ready for input into [angsd](http://popgen.dk/wiki/index.php/ANGSD). On the other hand the mapping parameters make the .bam files unsuitable for use with [CNVer](http://compbio.cs.toronto.edu/CNVer/). This is because the mapping that is currently done has used paired end information and this currupts the CNVer analysis. Also the paired reads are not interleaved as required. The authors of CNVer strongly recommend using bowtie to map the data, and suggest some [parameters](http://compbio.cs.toronto.edu/cnver/README-0.8.1.txt) to use. This essentailly means that the reads will have to be mapped twice, once using BWA-MEM (for GLs, SFS, pi and Tajima's D) and again with [`bowtie`](http://bowtie-bio.sourceforge.net/index.shtml) for input to `CNVer`. As a first parse I am analysing only chromosome 10, in order that the full pipeline can be figured out. 
+
+#Estimating the site frequency spectrum#
 
 First estimate the site allele frequency likelihood. This requires several things listed below:
 
 1. A file with listed, one per line, all the .bam files you want to analyse. You can grab the files you need by cd’ing to the dir they are in and executing this code on the command line. 
-
 ```
 ls -d $PWD/*.bam > file.list.txt
 ```
-
 2. Choose which method you want to use with:
-
 ```
 -doSaf [int 1-4]
 ```
-
-There are four options listed in detail here(http://popgen.dk/angsd/index.php/SFS_Estimation), in this case we want to estimate the **inbreeding co-efficient** of the sample, have this ready in a file and use the $-doSaf\space2$ option (See later for generating an inbreeding coefficient estiamtion).
-
-
+There are four options listed in detail [here](http://popgen.dk/angsd/index.php/SFS_Estimation), in this case we want to estimate the **inbreeding co-efficient** of the sample, have this ready in a file and use the $-doSaf\space2$ option (See later for generating an inbreeding coefficient estiamtion).
 3. Define your ancestral allele using the flag:
-
-```
+```{width=5}
 -anc <path/to/referencegenome>
 ```
 In my case we do not know the ancestral allele state, which means instead of derived allele SFS we need a minor allele SFS (a folded SFS). We can still provide an ancestral estimate using the reference genome (B73), but once folding is complete in becomes a minor allele SFS. We need to specify that we want a folded SFS with:
-
 ```
 -fold 1
 ```
-
 Or, alternatively we can estimate the ancestral state using *Tripsicum* reads mapped to the ref_v3 genome. We can supply a fasta file with tripsicum alleles placed on the ref_v3 resequence. The original file is stored here:
 ```
 /group/jrigrp3/bottleneckProject/genomes/TRIP.fa
@@ -47,11 +40,9 @@ But I have a symbolic link in:
 ```
 
 4. Define the method for estimating Genotype Likelihoods:
-
 ```
 -GL [int 1-4]
 ```
-
 details of the different methods are provided [here](http://popgen.dk/angsd/index.php/Genotype_likelihoods). This will be important later as we need the GLs to estimate the **inbreeding coefficient**.
 
 5. Define the number of processors to use with:
@@ -98,7 +89,7 @@ date
 ```
 
 
-In order to calculate the inbreeding coefficient we need to know the genotype liklihoods of each sample. The genotype likelihood for each samples are calculated with:
+In order to calculate the inbreeding coefficient we need to know the genotype liklihoods of each sample. The genotype likelihood for each samples is calculated suing the below slurm script:
 ```
 #!/bin/bash
 #OUTDIR=/home/sbyfield/teosinte_parents/angsd_output
@@ -112,9 +103,132 @@ date
 COMMAND="angsd -bam /home/sbyfield/teosinte_parents/file.list.txt -doGlf 3 -GL 1 -out teo_parents20 -doMaf 2 -SNP_pval 1e-6 -doMajorMinor 1 -nThreads 16 -r 10"
 echo $COMMAND
 
-angsd -bam /home/sbyfield/teosinte_parents/file.list.txt -doGlf 3 -GL 1 -out teo_parents20 -doMaf 2 -SNP_pval 1e-6 -doMajorMinor 1 -nThreads 16 -r 10
+eval "$COMMAND"
 
 echo "Ending Job: "
 date
 ```
-Note that in this case the $-GL\space1$ parameter means that the GLs are calculated using the SAMtools algorithm, detailed [here](https://www.broadinstitute.org/gatk/media/docs/Samtools.pdf). In addition only chromosome 10 is analysed in this case.
+Note that in this case the $-GL\space1$ parameter means that the GLs are calculated using the SAMtools algorithm, detailed [here](https://www.broadinstitute.org/gatk/media/docs/Samtools.pdf). In addition only chromosome 10 is analysed in this case. You must add -doGlf 3 to output a sample based GL file in binary format. This is what `ngsF` needs to estimate $F$.
+
+##Estimating $F$ the inbreeding coefficient##
+
+There is an [examples](https://github.com/fgvieira/ngsF/tree/master/examples) folder in the `ngsF` github repo which details how to use the program to generate $F$ for each sample. I will use this script based on the examples given:
+
+```
+#!/bin/bash
+#OUTDIR=/home/sbyfield/teosinte_parents/angsd_output
+#SBATCH -D /home/sbyfield/teosinte_parents/angsd_output
+#SBATCH -o /home/sbyfield/teosinte_parents/logs/out_log-%j.txt
+#SBATCH -e /home/sbyfield/teosinte_parents/logs/err_log-%j.txt
+#SBATCH -J coefF
+
+echo "Starting Job: "
+date
+
+N_SITES="$((`zcat teo_parents20.mafs.gz | wc -l`-1))"
+echo $N_SITES
+
+cmd1="ngsF -n_ind 20 -n_sites $N_SITES  -min_epsilon 0.001 -glf teo_parents20.glf -out teo_parents20.approx_indF -approx_EM -seed 12345 -init_values r -n_threads 6"
+echo $cmd1
+eval $cmd1
+
+cmd2="ngsF -n_ind 20 -n_sites $N_SITES -min_epsilon 0.001 -glf teo_parents20.glf -out teo_parents20.indF -init_values teo_parents20.approx_indF.pars -n_threads 6"
+echo $cmd2
+eval $cmd2
+
+echo "Job Done: "
+date
+
+```
+
+This produces two output files, the first (in $cmd1) estiamtes $F$ and these estimates are parsed to a second run (in $cmd1) which then refines the estimates. Follwing this you can combine these estiamtes with the appropriate samples names using a unix command something like:
+```
+paste teo_parents20.approx_indF ../file.list.txt > teo_parents20.approx_named_indF.txt
+```
+where file.list.txt is the list of .bam files used in the analysis. Here is a histogram of $F$:
+```{r eval=TRUE, echo=FALSE,fig.width=8,fig.height=4.5,dpi=300,out.width="680px",height="680px"}
+F<-read.table("/Users/simonrenny-byfield/PalMarChico_data_info/Fcoeff_R.txt", header = FALSE)
+hist(F[,1], breaks = 30, col="cornflowerblue", xlab="Inbreeding coefficient estimate", main = "Twenty Palmar Chico individuals")
+mean(F[,1])
+```
+
+##Estimate the site allele frequency##
+
+We can begin to estimate the site frequency spectrum. First we need the .saf file which can be generated with the below command:
+
+```
+#!/bin/bash
+#OUTDIR=/home/sbyfield/teosinte_parents/angsd_output
+#SBATCH -D /home/sbyfield/teosinte_parents/angsd_output
+#SBATCH -o /home/sbyfield/teosinte_parents/logs/out_log-%j.txt
+#SBATCH -e /home/sbyfield/teosinte_parents/logs/err_log-%j.txt
+#SBATCH -J saf
+
+echo "Starting Job: "
+date
+
+cmd="angsd -bam ../file.list.txt -doSaf 2 -out teoparents20 -anc ../genomes/TRIP.fa -ref ../genomes/Zea_mays.AGPv3.22.dna.genome.fa -GL 1 -P 12 -r 10 -indF teo_parents20.approx_indF -doMaf 1 -doMajorMinor 1 -minMapQ 1 -minQ 20"
+echo $cmd
+eval $cmd
+
+echo "Job Done: "
+date
+```
+I originally had `-doMaf 2`, but Tim has option `-doMaf 1`. After using `-doMaf 2` the SFS was:
+```
+-0.062885 -inf -inf -inf -inf -inf -inf -inf -inf -inf -inf -inf -inf -inf -inf -inf -inf -inf -inf -inf -inf -inf -inf -inf -inf -inf -inf -inf -inf -inf -inf -inf -inf -inf -inf -inf -inf -inf -inf -inf -2.797722
+```
+suggesting that the derived allele has a probability of being at frequency zero of `r exp(-0.062885)` and the derived allele at being at frequency 40 with probability `r exp(-2.797722)`. This seems terribly wrong. I have re-run the command with `-doMaf 1` option. This solved the problem and we now get this sort of output from `realSFS`.
+```
+-0.137286 -3.773777 -4.442083 -4.894909 -5.325430 -5.629502 -5.904913 -6.143009 -6.338800 -6.514279 -6.645978 -6.796172 -6.945955 -7.056051 -7.144333 -7.221669 -7.325251 -7.370765 -7.388119 -7.418594 -7.461358 -7.574166 -7.688638 -7.746183 -7.843669 -7.804058 -7.864351 -7.886032 -7.873087 -7.827869 -7.791916 -7.681828 -7.696670 -7.606883 -7.545436 -7.394282 -7.201138 -6.966641 -6.704915 -6.284160 -3.013013
+```
+##Formally calculate the SFS##
+
+Next we need to use `realSFS` to construct the site frequency spectrum. Earlier in the dummy run on Hapmap2 data I generated a folded SFS, however in this case I am using an unfolded SFS as we have the ancestral genome of $Tripsicum$. Also, with a folded example you need to declare the number of individuals, whereas in this case it's the number of chromosomes (so for 10 individuals, you choose 20, and for 20 you choose 40). A command like this should work:
+```
+#!/bin/bash
+#OUTDIR=/home/sbyfield/teosinte_parents/angsd_output
+#SBATCH -D /home/sbyfield/teosinte_parents/angsd_output
+#SBATCH -o /home/sbyfield/teosinte_parents/logs/out_log-%j.txt
+#SBATCH -e /home/sbyfield/teosinte_parents/logs/err_log-%j.txt
+#SBATCH -J sfs
+
+echo "Starting Job: "
+date
+
+cmd="realSFS teoparents20.saf 40 -maxIter 100 -P 12 > teoparents20.sfs"
+echo $cmd
+eval $cmd
+
+echo "Job Done: "
+date
+```
+
+The SFS for the first 20 teosinte plants looks like this:
+```{r,echo = FALSE,fig.width=8,fig.height=4.5,dpi=300,out.width="680px",height="680px"}
+sfs<-exp(scan("/Users/simonrenny-byfield/test_angst/teoparents20.sfs")) 
+barplot(sfs[-c(1,41)],col="cornflowerblue",names.arg=1:39, ylab="probability",xlab="allele freqquency", main = "Chr10")
+```
+
+#Estimating genome (or chromosome) wide thetas#
+
+The next step is to caulculate the genome wide thetas with the following command:
+
+```
+#!/bin/bash
+#OUTDIR=/home/sbyfield/teosinte_parents/angsd_output
+#SBATCH -D /home/sbyfield/teosinte_parents/angsd_output
+#SBATCH -o /home/sbyfield/teosinte_parents/logs/out_log-%j.txt
+#SBATCH -e /home/sbyfield/teosinte_parents/logs/err_log-%j.txt
+#SBATCH -J thetas
+
+echo "Starting Job: "
+date
+
+cmd="angsd -bam ../file.list.txt -out teosinte20thetas.sfs -doThetas 1 -doSaf 1 -pest teoparents20.sfs -anc ../genomes/TRIP.fa -GL 2 -P 12 -r 10 -minMapQ 1 -minQ 20"
+echo $cmd
+eval $cmd
+
+echo "Ending Job: "
+date
+```
