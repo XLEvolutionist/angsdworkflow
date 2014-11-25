@@ -96,11 +96,12 @@ In order to calculate the inbreeding coefficient we need to know the genotype li
 #SBATCH -D /home/sbyfield/teosinte_parents/angsd_output
 #SBATCH -o /home/sbyfield/teosinte_parents/logs/out_log-%j.txt
 #SBATCH -e /home/sbyfield/teosinte_parents/logs/err_log-%j.txt
+#SBATCH -j geno
 
 echo "Starting Job: "
 date
 
-COMMAND="angsd -bam /home/sbyfield/teosinte_parents/file.list.txt -doGlf 3 -GL 1 -out teo_parents20 -doMaf 2 -SNP_pval 1e-6 -doMajorMinor 1 -nThreads 16 -r 10"
+COMMAND="angsd -bam /home/sbyfield/teosinte_parents/file.list.txt -doGlf 3 -GL 1 -out teo_parents20 -doMaf 2 -SNP_pval 1e-6 -doMajorMinor 1 -nThreads 16 -r 10 -minMapQ 30 -minQ 20"
 echo $COMMAND
 
 eval "$COMMAND"
@@ -109,6 +110,8 @@ echo "Ending Job: "
 date
 ```
 Note that in this case the $-GL\space1$ parameter means that the GLs are calculated using the SAMtools algorithm, detailed [here](https://www.broadinstitute.org/gatk/media/docs/Samtools.pdf). In addition only chromosome 10 is analysed in this case. You must add -doGlf 3 to output a sample based GL file in binary format. This is what `ngsF` needs to estimate $F$.
+
+**********We are here so far******
 
 ##Estimating $F$ the inbreeding coefficient##
 
@@ -128,11 +131,11 @@ date
 N_SITES="$((`zcat teo_parents20.mafs.gz | wc -l`-1))"
 echo $N_SITES
 
-cmd1="ngsF -n_ind 20 -n_sites $N_SITES  -min_epsilon 0.001 -glf teo_parents20.glf -out teo_parents20.approx_indF -approx_EM -seed 12345 -init_values r -n_threads 6"
+cmd1="ngsF -n_ind 20 -n_sites $N_SITES  -min_epsilon 0.001 -glf teo_parents20.glf -out teo_parents20.approx_indF -approx_EM -seed 12345 -init_values r -n_threads 8"
 echo $cmd1
 eval $cmd1
 
-cmd2="ngsF -n_ind 20 -n_sites $N_SITES -min_epsilon 0.001 -glf teo_parents20.glf -out teo_parents20.indF -init_values teo_parents20.approx_indF.pars -n_threads 6"
+cmd2="ngsF -n_ind 20 -n_sites $N_SITES -min_epsilon 0.001 -glf teo_parents20.glf -out teo_parents20.indF -init_values teo_parents20.approx_indF.pars -n_threads 8"
 echo $cmd2
 eval $cmd2
 
@@ -167,7 +170,7 @@ We can begin to estimate the site frequency spectrum. First we need the .saf fil
 echo "Starting Job: "
 date
 
-cmd="angsd -bam ../file.list.txt -doSaf 2 -out teoparents20 -anc ../genomes/TRIP.fa -ref ../genomes/Zea_mays.AGPv3.22.dna.genome.fa -GL 1 -P 12 -r 10 -indF teo_parents20.approx_indF -doMaf 1 -doMajorMinor 1 -minMapQ 1 -minQ 20"
+cmd="angsd -bam ../file.list.txt -doSaf 2 -out teoparents20 -anc ../genomes/TRIP.fa -ref ../genomes/Zea_mays.AGPv3.22.dna.genome.fa -GL 1 -P 12 -r 10 -indF teo_parents20.approx_indF -doMaf 1 -doMajorMinor 1 -minMapQ 30 -minQ 20"
 echo $cmd
 eval $cmd
 
@@ -225,10 +228,32 @@ The next step is to caulculate the genome wide thetas with the following command
 echo "Starting Job: "
 date
 
-cmd="angsd -bam ../file.list.txt -out teosinte20thetas.sfs -doThetas 1 -doSaf 1 -pest teoparents20.sfs -anc ../genomes/TRIP.fa -GL 2 -P 12 -r 10 -minMapQ 1 -minQ 20"
+cmd="angsd -bam ../file.list.txt -out teosinte20thetas.sfs -doThetas 1 -doSaf 1 -pest teoparents20.sfs -anc ../genomes/TRIP.fa -GL 2 -P 12 -r 10 -minMapQ 30 -minQ 20"
 echo $cmd
 eval $cmd
 
 echo "Ending Job: "
 date
 ```
+Next we can make a BED file of the genome-wide theta values and calculate Tajima's D:
+```
+#!/bin/bash
+#OUTDIR=/home/sbyfield/teosinte_parents/angsd_output
+#SBATCH -D /home/sbyfield/teosinte_parents/angsd_output
+#SBATCH -o /home/sbyfield/teosinte_parents/logs/out_log-%j.txt
+#SBATCH -e /home/sbyfield/teosinte_parents/logs/err_log-%j.txt
+#SBATCH -J thetas_bed
+
+echo "Starting Job: "
+date
+
+#create a binary version of thete.thetas.gz 
+thetaStat make_bed teosinte20thetas.sfs.thetas.gz
+#calculate Tajimas D
+thetaStat do_stat out.thetas.gz -nChr 20 -win 5000 -step 1000  -outnames teothetasWindow_chr10.gz
+
+echo "Ending Job: "
+date
+```
+
+
