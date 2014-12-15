@@ -598,8 +598,6 @@ echo "done"
 time
 ```
 
-
-
 Jeff notes that these line (from HapMap2) are all selfed for many generations and so need the expected heterozygosity will change. These samples are ***Inbred**. You can indicate this to ANGSD with an *inbreeding file* containing the appropriate inbreeding coefficient for each sample. In this case 1.
 
 ```

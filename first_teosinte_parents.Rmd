@@ -256,4 +256,53 @@ echo "Ending Job: "
 date
 ```
 
+#Estimate coverage per locus per individual#
 
+The purpose of this aspect of the analysis is to generate estiamtes of coverage over specific base pairs. This will allow us to assess the effects on, SFS, pi and Tajima's D depending on the number of samples that are available.
+
+```
+#!/bin/bash
+#OUTDIR=/home/sbyfield/teosinte_parents/angsd_output
+#SBATCH -D /home/sbyfield/teosinte_parents/angsd_output
+#SBATCH -o /home/sbyfield/teosinte_parents/logs/out_log-%j.txt
+#SBATCH -e /home/sbyfield/teosinte_parents/logs/err_log-%j.txt
+#SBATCH -J counts
+
+echo "Starting Job: "
+date
+
+cmd="angsd -bam ../file.list.txt -doCounts 1 -minInd 0 -dumpCounts 2 -minQ 20 -P 12 -r 10 -out teoparents20_Chr10counts"
+echo $cmd
+eval $cmd
+
+echo "Ending Job: "
+date
+```
+
+The output of the this call (currently in teoparents20_Chr10counts.counts.gz) looks something like this:
+```
+ind0TotDepth  ind1TotDepth	ind2TotDepth	ind3TotDepth	ind4TotDepth	ind5TotDepth	ind6TotDepth	ind7TotDepth	ind8TotDepth	ind9TotDepth	ind10TotDepth	ind11TotDepth	ind12TotDepth	ind13TotDepth	ind14TotDepth	ind15TotDepth	ind16TotDepth	ind17TotDepth	ind18TotDepth	ind19TotDepth	
+1	1	0	1	0	1	0	0	1	0	0	0	0	0	3	0	0	0	0	0	
+1	1	2	3	0	3	0	1	1	0	0	0	2	1	4	0	0	0	0	0	
+2	3	2	6	0	6	0	1	1	1	0	0	2	1	4	2	0	2	1	0	
+3	3	2	6	2	7	0	1	1	1	0	1	4	1	5	4	0	3	1	0	
+3	3	2	6	2	7	0	1	2	1	0	1	3	2	4	4	0	3	1	0	
+11	3	2	6	2	9	0	1	1	1	2	1	4	2	5	4	0	3	1	0	
+11	3	2	6	3	9	0	2	1	1	5	1	3	8	5	4	0	3	1	0	
+12	3	2	6	3	11	0	2	2	4	8	1	8	11	7	5	0	5	2	0	
+12	3	2	9	4	11	0	3	1	3	8	0	9	11	7	5	0	5	2	0
+```
+However, the positions of each read count are given in teoparents20_Chr10counts.pos.gz and looks like:
+```
+chr  pos	totDepth
+10	19	8
+10	20	19
+10	21	34
+10	22	45
+10	23	45
+10	24	58
+10	25	68
+10	26	92
+10	27	95
+```
+There fore the rowsums of the first file (teoparents20_Chr10counts.counts.gz) should match the last column in the second file (teoparents20_Chr10counts.pos.gz)
