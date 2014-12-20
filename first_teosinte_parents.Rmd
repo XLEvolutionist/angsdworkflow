@@ -256,6 +256,14 @@ echo "Ending Job: "
 date
 ```
 
+I have tried a number of options for window size and slide. I'll list these below along with the associated file names. All output files are stores in the dir `/home/sbyfield/teosinte_parents/angsd_output` on `farm`.
+
+* Window: 5000 Step: 1000 file: teothetasWindow5000bp_step_1000_chr10.gz.pestPG
+* Window: 1000 Step: 500 file: teothetasWindow1000bp_step_500_chr10.gz.pestPG
+* Window: 100 Step: 50 file: teothetasWindow100bp_step_50_chr10.gz.pestPG
+* Window: 10 Step: 10 file: teothetasWindow10bp_step_10_chr10.gz.pestPG
+* Window: 10 Step: 5 file: teothetasWindow10bp_step_5_chr10.gz.pestPG
+
 #Estimate coverage per locus per individual#
 
 The purpose of this aspect of the analysis is to generate estiamtes of coverage over specific base pairs. This will allow us to assess the effects on, SFS, pi and Tajima's D depending on the number of samples that are available.
@@ -305,4 +313,88 @@ chr  pos	totDepth
 10	26	92
 10	27	95
 ```
-There fore the rowsums of the first file (teoparents20_Chr10counts.counts.gz) should match the last column in the second file (teoparents20_Chr10counts.pos.gz)
+There fore the rowsums of the first file (teoparents20_Chr10counts.counts.gz) should match the last column in the second file (teoparents20_Chr10counts.pos.gz).
+
+#Plot some of the data#
+
+plot chromsome wide Tajima's D for the forst 20 parents (using window size 5000, slide of 1000).
+```{r,echo = FALSE,fig.width=8,fig.height=4.5,dpi=300,out.width="680px",height="680px"}
+TJD<-read.table("/Users/simonrenny-byfield/test_angst/teothetasWindow5000bp_step_1000_chr10.gz.pestPG", header = T, sep = "\t")
+plot(TJD[,3],TJD[,9], pch = 16, cex=.5, col = "cornflowerblue", xlab = "position", ylab = "Tajima's D")
+```
+
+Now what about TJD with coverage per window
+```{r,echo = FALSE,fig.width=8,fig.height=4.5,dpi=300,out.width="680px",height="680px"}
+library(ggplot2)
+#load in the data
+TJD<-read.table("/Users/simonrenny-byfield/test_angst/teothetasWindow_chr10.gz.pestPG", header = T, sep = "\t")
+scatter.smooth(TJD[,14]/5000,TJD[,9], pch = 16, cex=.5, xlab="proportion oa bases covered", ylab="Tajima's D", col ="red")
+```
+
+And for pi.
+
+```{r,echo = FALSE,fig.width=8,fig.height=4.5,dpi=300,out.width="680px",height="680px"}
+TJD<-read.table("/Users/simonrenny-byfield/test_angst/teothetasWindow_chr10.gz.pestPG", header = T, sep = "\t")
+scatter.smooth(TJD[,14]/5000,(TJD[,5]/TJD[,14]), pch = 16, cex=.5, xlab="proportion of bases covered", ylab = "pi", col = "red")
+```
+
+**Importantly some of the data has been moved. `~/teosinte_parents` has now moved to `/group/jrigrp4/` due to space issues in my home dir.**
+
+#Theta, pi and Tajima's D for varying numbers of individuals#
+
+Jeff pointed out that we should really take a look at how the minimum number of inifividuals affets estimates of Theta, pi and Taj D. I think this can be done by re-running the final steps of the analysis but with the `-minInd` flag set to the appropriate number (5,10,15,20 for example).
+
+For example to run estiamtes of theta with a minimum of `mInd` individuals you would need..
+
+```
+#!/bin/bash
+#OUTDIR=/group/jrigrp4/teosinte_parents/angsd_output
+#SBATCH -D /group/jrigrp4/teosinte_parents/angsd_output
+#SBATCH -o /group/jrigrp4/teosinte_parents/logs/out_log-%j.txt
+#SBATCH -e /group/jrigrp4/teosinte_parents/logs/err_log-%j.txt
+#SBATCH -J thetas
+
+echo "Starting Job: "
+date
+
+for i in {5,10,15,20}
+  do
+    mInd=$i
+    mkdir $i
+    cmd="angsd -bam ../file.list.txt -out $i/teosinte20thetas.sfs -doThetas 1 -doSaf 1 -pest teoparents20.sfs -anc ../genomes/TRIP.fa -GL 2 -P 12 -r 10 -minMapQ 30 -minQ 20 -minInd $mInd"
+    echo $cmd
+    eval $cmd
+ done
+echo "Ending Job: "
+date
+
+```
+
+next calculate Tajima's D for all these runs:
+
+```
+#!/bin/bash
+#OUTDIR=/group/jrigrp4/teosinte_parents/angsd_output
+#SBATCH -D /group/jrigrp4/teosinte_parents/angsd_output
+#SBATCH -o /group/jrigrp4/teosinte_parents/logs/out_log-%j.txt
+#SBATCH -e /group/jrigrp4/teosinte_parents/logs/err_log-%j.txt
+#SBATCH -J thetas_bed
+
+echo "Starting Job: "
+date
+
+for i in {5,10,15,20}
+  do
+    #create a binary version of thete.thetas.gz 
+    cmd="thetaStat make_bed $i/teosinte20thetas$i.sfs.thetas.gz"
+    echo $cmd
+    #eval $cmd
+    #calculate Tajimas D
+    cmd="thetaStat do_stat $i/teosinte20thetas$i.sfs.thetas.gz -nChr 20 -win 5000 -step 1000  -outnames $i/teosinte20thetas$i_chr10.gz"
+    echo $cmd
+    eval $cmd
+ done
+ 
+echo "Ending Job: "
+date
+```
