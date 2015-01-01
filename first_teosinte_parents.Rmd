@@ -149,7 +149,7 @@ This produces two output files, the first (in $cmd1) estiamtes $F$ and these est
 paste teo_parents20.approx_indF ../file.list.txt > teo_parents20.approx_named_indF.txt
 ```
 where file.list.txt is the list of .bam files used in the analysis. Here is a histogram of $F$:
-```{r eval=TRUE, echo=FALSE,fig.width=8,fig.height=4.5,dpi=300,out.width="680px",height="680px"}
+```{r eval=FALSE, echo=FALSE,fig.width=8,fig.height=4.5,dpi=300,out.width="680px",height="680px"}
 F<-read.table("/Users/simonrenny-byfield/PalMarChico_data_info/Fcoeff_R.txt", header = FALSE)
 hist(F[,1], breaks = 30, col="cornflowerblue", xlab="Inbreeding coefficient estimate", main = "Twenty Palmar Chico individuals")
 mean(F[,1])
@@ -208,7 +208,7 @@ date
 ```
 
 The SFS for the first 20 teosinte plants looks like this:
-```{r,echo = FALSE,fig.width=8,fig.height=4.5,dpi=300,out.width="680px",height="680px"}
+```{r,echo = FALSE,eval=FALSE,fig.width=8,fig.height=4.5,dpi=300,out.width="680px",height="680px"}
 sfs<-exp(scan("/Users/simonrenny-byfield/test_angst/teoparents20.sfs")) 
 barplot(sfs[-c(1,41)],col="cornflowerblue",names.arg=1:39, ylab="probability",xlab="allele freqquency", main = "Chr10")
 ```
@@ -318,13 +318,13 @@ There fore the rowsums of the first file (teoparents20_Chr10counts.counts.gz) sh
 #Plot some of the data#
 
 plot chromsome wide Tajima's D for the forst 20 parents (using window size 5000, slide of 1000).
-```{r,echo = FALSE,fig.width=8,fig.height=4.5,dpi=300,out.width="680px",height="680px"}
+```{r,echo = FALSE,eval = FALSE,fig.width=8,fig.height=4.5,dpi=300,out.width="680px",height="680px"}
 TJD<-read.table("/Users/simonrenny-byfield/test_angst/teothetasWindow5000bp_step_1000_chr10.gz.pestPG", header = T, sep = "\t")
 plot(TJD[,3],TJD[,9], pch = 16, cex=.5, col = "cornflowerblue", xlab = "position", ylab = "Tajima's D")
 ```
 
 Now what about TJD with coverage per window
-```{r,echo = FALSE,fig.width=8,fig.height=4.5,dpi=300,out.width="680px",height="680px"}
+```{r,echo = FALSE,eval=FALSE,fig.width=8,fig.height=4.5,dpi=300,out.width="680px",height="680px"}
 library(ggplot2)
 #load in the data
 TJD<-read.table("/Users/simonrenny-byfield/test_angst/teothetasWindow_chr10.gz.pestPG", header = T, sep = "\t")
@@ -333,7 +333,7 @@ scatter.smooth(TJD[,14]/5000,TJD[,9], pch = 16, cex=.5, xlab="proportion oa base
 
 And for pi.
 
-```{r,echo = FALSE,fig.width=8,fig.height=4.5,dpi=300,out.width="680px",height="680px"}
+```{r,echo = FALSE,eval=FALSE,fig.width=8,fig.height=4.5,dpi=300,out.width="680px",height="680px"}
 TJD<-read.table("/Users/simonrenny-byfield/test_angst/teothetasWindow_chr10.gz.pestPG", header = T, sep = "\t")
 scatter.smooth(TJD[,14]/5000,(TJD[,5]/TJD[,14]), pch = 16, cex=.5, xlab="proportion of bases covered", ylab = "pi", col = "red")
 ```
